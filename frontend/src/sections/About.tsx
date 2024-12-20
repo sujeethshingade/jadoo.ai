@@ -68,7 +68,7 @@ const features = [
         top: '35%',
     },
     {
-        title: 'Key-Point Detection',
+        title: 'Detection',
         emoji: '📌',
         left: '70%',
         top: '40%',
@@ -81,7 +81,7 @@ const features = [
     },
     {
         title: 'Panoptic Segmentation',
-        emoji: '🌐',
+        emoji: '🔲',
         left: '45%',
         top: '70%',
     },
@@ -93,7 +93,7 @@ export default function AboutSection() {
         <div className="py-16">
             <div className="container">
                 <SectionHeader
-                    eyebrow="About Us"
+                    eyebrow="About Jadoo.ai"
                     title="Your Visuals, Our Descriptions Seamlessly Aligned."
                     description="Where Vision Meets Verbal Precision. From Images to Insights, Effortlessly."
                 />

@@ -50,7 +50,7 @@ const SearchImage = () => {
   };
 
   return (
-    <div className="container py-12">
+    <div className="container py-16">
     <Card className="w-full max-w-4xl mx-auto p-6 bg-transparent border border-white/10 rounded-md">
       <div className="space-y-6">
         {/* Search Input */}
