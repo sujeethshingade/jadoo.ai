@@ -29,6 +29,7 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
         } catch (err) {
             setError("Failed to access camera. Please grant permissions.");
             console.error(err);
+            setStream(null); 
         }
     };
 
@@ -44,7 +45,7 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
             canvasRef.current.width = videoWidth;
             canvasRef.current.height = videoHeight;
 
-            context?.scale(-1, 1); // Horizontal flip (mirror effect)
+            context?.scale(-1, 1);
             context?.drawImage(videoRef.current, -videoWidth, 0, videoWidth, videoHeight);
 
             const photoData = canvasRef.current.toDataURL('image/png');
@@ -65,7 +66,7 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
     }, []);
 
     return (
-        <div className="container relative">
+        <div className="container relative py-16">
             <div className="relative aspect-video rounded-sm overflow-hidden">
                 <video
                     ref={videoRef}
@@ -93,13 +94,15 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
 
             {error && <div className="text-red-500 text-center mt-4">{error}</div>}
 
-            <button
-                onClick={isCaptured ? handleRetake : takePhoto}
-                disabled={isLoading}
-                className="mt-4 w-full px-4 py-2 tracking-tight bg-gradient-to-tr from-blue-900 to-emerald-500 text-white rounded-sm font-medium"
-            >
-                {isCaptured ? 'Retake Photo' : (isLoading ? 'Processing...' : 'Capture Photo')}
-            </button>
+            {stream && !error && (
+                <button
+                    onClick={isCaptured ? handleRetake : takePhoto}
+                    disabled={isLoading}
+                    className="mt-4 w-full px-4 py-2 tracking-tight bg-gradient-to-tr from-blue-900 to-emerald-500 text-white rounded-sm font-medium"
+                >
+                    {isCaptured ? 'Retake Photo' : (isLoading ? 'Processing...' : 'Capture Photo')}
+                </button>
+            )}
         </div>
     );
 };

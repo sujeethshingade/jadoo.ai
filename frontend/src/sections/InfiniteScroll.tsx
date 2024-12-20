@@ -11,7 +11,7 @@ export default function InfiniteScroll() {
                     animate={{ translateX: '0%' }}
                     transition={{ duration: 100, repeat: Infinity, ease: 'linear' }}
                     className="flex flex-none items-center justify-between whitespace-nowrap -translate-x-1/2">
-                    <nav className='text-8xl md:text-[128px] tracking-tighter font-bold text-white/10 mr-10 pb-4'>
+                    <nav className='text-8xl md:text-[128px] font-bold text-white/10 mr-10 pb-4'>
                         <span>Jadoo.ai ⭑ Jadoo.ai ⭑ Jadoo.ai ⭑ Jadoo.ai ⭑ </span>
                         <span>Jadoo.ai ⭑ Jadoo.ai ⭑ Jadoo.ai ⭑ Jadoo.ai ⭑ </span>
                         <span>Jadoo.ai ⭑ Jadoo.ai ⭑ Jadoo.ai ⭑ Jadoo.ai ⭑ </span>
