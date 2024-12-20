@@ -1,8 +1,7 @@
 from vlm import generate_description
-import spacy
+import en_core_web_sm
 
-nlp = spacy.load("en_core_web_sm")
-
+nlp = en_core_web_sm.load()
 
 def detect_labels_uri(uri):
     """Detects labels in the file located in Google Cloud Storage or on the
@@ -30,6 +29,8 @@ def detect_labels_uri(uri):
         if ent.label_ in ("GPE", "ORG", "PERSON", "LOC", "PRODUCT", "EVENT")
     ]
     final_labels.extend(important_words)
+
+    final_labels = list(set(final_labels))
 
     print(final_labels)
     if response.error.message:
