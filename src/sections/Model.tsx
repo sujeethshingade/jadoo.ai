@@ -1,6 +1,5 @@
 "use client";
 
-import gridLines from "@/assets/grid-lines.png";
 import Spline from "@splinetool/react-spline";
 import { motion, useMotionTemplate, useMotionValue, useScroll, useTransform } from "framer-motion";
 import { RefObject, useEffect, useRef } from "react";
@@ -37,18 +36,19 @@ export default function Model() {
 
   return (
     <section ref={sectionRef}>
-      <div className="container py-16">
+      <div className="container py-12">
         <div className="max-w-6xl mx-auto space-y-4">
+          {/* Ensure the motion.div is a full circle and responsive */}
           <motion.div
-            className="border relative group min-h-[360px] md:min-h-[400px] border-white overflow-hidden"
+            className="border relative group min-h-[360px] md:min-h-[400px] border-white/15 rounded-full overflow-hidden"
             style={{
               backgroundPositionY,
+              width: '100%',
+              aspectRatio: '1',
             }}
           >
             <div
               className="absolute inset-0 bg-white/30 bg-blend-overlay [mask-image:radial-gradient(50%_50%_at_50%_50%,black,transparent)] group-hover:opacity-0 transition duration-700"
-              style={{
-              }}
             />
             <motion.div
               ref={borderedDivRef}
@@ -57,8 +57,7 @@ export default function Model() {
                 maskImage,
               }}
             />
-            {/* Container for Spline model */}
-            <div className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] flex items-center justify-center">
+            <div className="relative w-full h-full flex items-center justify-center">
               <Spline
                 scene="https://prod.spline.design/6nQvb7qQ3b8hFBQj/scene.splinecode"
                 className="w-full h-full"
