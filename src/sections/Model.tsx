@@ -38,7 +38,6 @@ export default function Model() {
     <section ref={sectionRef}>
       <div className="container py-12">
         <div className="max-w-6xl mx-auto space-y-4">
-          {/* Ensure the motion.div is a full circle and responsive */}
           <motion.div
             className="border relative group min-h-[360px] md:min-h-[400px] border-white/15 rounded-full overflow-hidden"
             style={{
