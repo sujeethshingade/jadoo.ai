@@ -2,12 +2,25 @@
 import { useState } from 'react';
 import LogoIcon from "@/assets/logo.png";
 import Image from 'next/image';
+import Link from 'next/link';
 import { MenuIcon, XIcon } from 'lucide-react';
 import { Button } from "@/components/Button";
-import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <header className="py-4 border-b border-white/15 md:border-none sticky top-0 z-10">
@@ -21,6 +34,7 @@ export default function Header() {
             </div>
             <span className="hidden md:block text-white font-medium">Jadoo.ai</span>
           </div>
+
           <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
             <nav className="flex gap-8 text-sm">
               <a href="#" className="text-white/70 hover:text-white transition">Gallery</a>
@@ -28,13 +42,22 @@ export default function Header() {
               <a href="#" className="text-white/70 hover:text-white transition">Upload</a>
             </nav>
           </div>
+
           <div className="flex gap-4 items-center">
-            <Link href="/signup">
-              <Button>Sign up</Button>
-            </Link>
-            <Link href="/login">
-              <Button>Login</Button>
-            </Link>
+            {!user ? (
+              <>
+                <Link href="/signup">
+                  <Button>Sign up</Button>
+                </Link>
+                <Link href="/login">
+                  <Button>Login</Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Button onClick={handleSignOut}>Sign out</Button>
+              </>
+            )}
             <MenuIcon
               className="w-8 h-8 md:hidden cursor-pointer"
               onClick={() => setMenuOpen(true)}
@@ -42,6 +65,8 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* Mobile menu */}
       <div className={`fixed border border-l border-white/15 inset-y-0 right-0 w-80 bg-gray-950 transform ${menuOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out z-30 md:hidden`}>
         <div className="flex items-center justify-end p-4">
           <XIcon
@@ -50,17 +75,33 @@ export default function Header() {
           />
         </div>
         <nav className="flex flex-col items-center mt-10 gap-6 px-4">
-          <a href="#" className="text-white text-lg" onClick={() => setMenuOpen(false)}>
-            Gallery
-          </a>
-          <a href="#" className="text-white text-lg" onClick={() => setMenuOpen(false)}>
-            Search
-          </a>
-          <a href="#" className="text-white text-lg" onClick={() => setMenuOpen(false)}>
-            Upload
-          </a>
+          <a href="#" className="text-white text-lg" onClick={() => setMenuOpen(false)}>Gallery</a>
+          <a href="#" className="text-white text-lg" onClick={() => setMenuOpen(false)}>Search</a>
+          <a href="#" className="text-white text-lg" onClick={() => setMenuOpen(false)}>Upload</a>
+          {!user ? (
+            <>
+              <Link href="/signup" className="text-white text-lg" onClick={() => setMenuOpen(false)}>
+                Sign up
+              </Link>
+              <Link href="/login" className="text-white text-lg" onClick={() => setMenuOpen(false)}>
+                Login
+              </Link>
+            </>
+          ) : (
+            <>
+              <button
+                className="text-white text-lg"
+                onClick={() => {
+                  handleSignOut();
+                  setMenuOpen(false);
+                }}
+              >
+                Sign out
+              </button>
+            </>
+          )}
         </nav>
       </div>
     </header>
   );
-};
+}
