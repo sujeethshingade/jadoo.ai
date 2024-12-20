@@ -10,7 +10,7 @@ export default function Header() {
 
   return (
     <header className="py-4 border-b border-white/15 md:border-none sticky top-0 z-10">
-      <div className={`absolute inset-0 backdrop-blur transition-opacity duration-300 ${menuOpen ? 'bg-black bg-opacity-50' : 'bg-transparent'}`}></div>
+      <div className={`absolute inset-0 backdrop-blur transition-opacity duration-300 ${menuOpen ? 'bg-gray-950 bg-opacity-50' : 'bg-transparent'}`}></div>
       <div className="container"> 
         <div className="flex justify-between items-center md:border border-white/15 md:p-2.5 max-w-2xl mx-auto rounded-xl relative">
           <div>
@@ -20,8 +20,8 @@ export default function Header() {
             </div>
           </div>
           {/* Menu for large screens */}
-          <div className="hidden md:block">
-            <nav className="flex justify-center gap-8 text-sm">
+          <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
+            <nav className="flex gap-8 text-sm">
               <a href="#" className="text-white/70 hover:text-white transition">Gallery</a>
               <a href="#" className="text-white/70 hover:text-white transition">Search</a>
               <a href="#" className="text-white/70 hover:text-white transition">Upload</a>
@@ -38,7 +38,7 @@ export default function Header() {
         </div>
       </div>
       {/* Sidebar menu for small screens */}
-      <div className={`fixed inset-y-0 right-0 w-80 bg-black transform ${menuOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out z-30 md:hidden`}>
+      <div className={`fixed border border-l border-white/15 inset-y-0 right-0 w-80 bg-gray-950 transform ${menuOpen ? 'translate-x-0' : 'translate-x-full'} transition-transform duration-300 ease-in-out z-30 md:hidden`}>
         <div className="flex items-center justify-end p-4">
           <XIcon
             className="w-6 h-6 text-white cursor-pointer"
@@ -59,4 +59,4 @@ export default function Header() {
       </div>
     </header>
   );
-}
+};
