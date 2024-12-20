@@ -64,7 +64,7 @@ const LoginPage = () => {
                         Email
                     </label>
                     <input
-                        className="shadow appearance-none border rounded-md border-white/15 w-full py-2 px-3 bg-transparent text-white/15 leading-tight focus:outline-none focus:shadow-outline"
+                        className="shadow appearance-none border rounded-md border-white/15 w-full py-2 px-3 bg-transparent text-white leading-tight focus:outline-none focus:shadow-outline"
                         id="email"
                         type="email"
                         placeholder="enter your email"
