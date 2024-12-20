@@ -3,59 +3,55 @@
 import React, { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Camera, Upload, Loader2 } from 'lucide-react';
-import CameraComponent from '@/components/Camera'; 
+import { Camera, Upload, Loader2, Check } from 'lucide-react';
+import CameraComponent from '@/components/Camera';
 import { supabase } from '@/lib/supabase';
 
 const Picture = () => {
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [mode, setMode] = useState<'initial' | 'camera' | 'preview'>('initial');
   const [isLoading, setIsLoading] = useState(false);
-  const [isCaptured, setIsCaptured] = useState(false);
-  const [showCamera, setShowCamera] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleCapture = async (capturedPhoto: string) => {
+  const handleCapture = (capturedPhoto: string) => {
     setCapturedImage(capturedPhoto);
-    setPhoto(capturedPhoto);
-    setIsCaptured(true);
+    setMode('preview');
+  };
+
+  const handleRetake = () => {
+    setCapturedImage(null);
+    setMode('camera');
+  };
+
+  const handleUploadCaptured = async () => {
+    if (!capturedImage) return;
     setIsLoading(true);
     
     try {
       // Convert base64 to blob
-      const base64Data = capturedPhoto.split(',')[1];
+      const base64Data = capturedImage.split(',')[1];
       const blob = await fetch(`data:image/png;base64,${base64Data}`).then(res => res.blob());
       const fileName = `capture-${Date.now()}.png`;
 
       // Upload to Supabase
       const { data, error } = await supabase.storage
         .from('image-store')
-        .upload(fileName, blob);
+        .upload(`public/${fileName}`, blob);
 
       if (error) throw error;
-      
-      // Save reference in images table
-      await supabase.from('images')
-        .insert([{ 
-          url: data.path,
-          created_at: new Date().toISOString()
-        }]);
 
-      setIsLoading(false);
+      // Reset states after successful upload
+      setMode('initial');
+      setCapturedImage(null);
     } catch (error) {
       console.error('Error uploading image:', error);
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRetake = () => {
-    setCapturedImage(null);
-    setPhoto(null);
-    setIsCaptured(false);
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files && event.target.files[0];
+    const file = event.target.files?.[0];
     if (!file) return;
 
     setIsLoading(true);
@@ -65,108 +61,101 @@ const Picture = () => {
       
       const { data, error } = await supabase.storage
         .from('image-store')
-        .upload(fileName, file);
+        .upload(`public/${fileName}`, file);
 
       if (error) throw error;
 
-      await supabase.from('images')
-        .insert([{ 
-          url: data.path,
-          created_at: new Date().toISOString()
-        }]);
-
-      // Get and display the uploaded image
-      const { data: urlData } = await supabase.storage
-        .from('image-store')
-        .createSignedUrl(data.path, 3600);
-
-      setPhoto(urlData?.signedUrl || null);
-      setIsLoading(false);
+      setMode('initial');
     } catch (error) {
       console.error('Error uploading image:', error);
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto p-6 mt-6">
-      {/* Action Buttons */}
-      <div className="flex gap-4 mb-6">
-        <Button
-          onClick={() => setShowCamera(prev => !prev)}
-          className="flex items-center gap-2"
-        >
-          <Camera className="w-4 h-4" />
-          {showCamera ? 'Hide Camera' : 'Take Picture'}
-        </Button>
-
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          variant="secondary"
-          className="flex items-center gap-2"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Upload className="w-4 h-4" />
-          )}
-          Upload Image
-        </Button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          accept="image/*"
-          className="hidden"
-        />
-      </div>
-
-      {/* Camera Section */}
-      {showCamera && (
-        <div className="relative mb-6">
-          <CameraComponent 
-            onCapture={handleCapture} 
-            isLoading={isLoading}
-            onRetake={handleRetake}
-            isCaptured={isCaptured}
-          />
-          
-          {capturedImage && (
-            <div className="absolute inset-0">
-              <img 
-                src={capturedImage} 
-                alt="Captured"
-                className="w-full h-full object-cover rounded-lg"
-              />
-            </div>
-          )}
-
+    <Card className="w-full max-w-3xl mx-auto p-6">
+      {mode === 'initial' && (
+        <div className="flex flex-col gap-4">
           <Button
-            onClick={isCaptured ? handleRetake : () => capturedImage && handleCapture(capturedImage)}
-            className="absolute bottom-4 left-1/2 transform -translate-x-1/2"
+            onClick={() => setMode('camera')}
+            className="flex items-center justify-center gap-2 py-6"
+          >
+            <Camera className="w-6 h-6" />
+            Take Picture
+          </Button>
+          
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            variant="outline"
+            className="flex items-center justify-center gap-2 py-6"
             disabled={isLoading}
           >
             {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Processing...
-              </>
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              isCaptured ? 'Retake' : 'Capture'
+              <Upload className="w-6 h-6" />
             )}
+            Upload Image
           </Button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept="image/*"
+            className="hidden"
+          />
         </div>
       )}
 
-      {/* Display captured/uploaded image */}
-      {photo && !showCamera && (
-        <div className="mt-4">
-          <img 
-            src={photo} 
-            alt="Captured" 
-            className="max-w-md mx-auto rounded-lg shadow-lg"
+      {mode === 'camera' && (
+        <div className="relative">
+          <CameraComponent 
+            onCapture={handleCapture}
+            isLoading={isLoading}
+            onRetake={handleRetake}
+            isCaptured={false}
           />
+        </div>
+      )}
+
+      {mode === 'preview' && capturedImage && (
+        <div className="space-y-4">
+          <div className="aspect-video relative rounded-lg overflow-hidden">
+            <img 
+              src={capturedImage}
+              alt="Preview"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
+          <div className="flex justify-center gap-4">
+            <Button
+              onClick={handleRetake}
+              variant="outline"
+              disabled={isLoading}
+            >
+              Retake
+            </Button>
+            
+            <Button
+              onClick={handleUploadCaptured}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  Upload
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       )}
     </Card>

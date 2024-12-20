@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Camera as CameraIcon } from 'lucide-react';
 
 interface CameraProps {
     onCapture: (photo: string) => void;
@@ -9,7 +11,7 @@ interface CameraProps {
     isCaptured: boolean;
 }
 
-const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptured }) => {
+const Camera: React.FC<CameraProps> = ({ onCapture, isLoading }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
@@ -29,13 +31,14 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
         } catch (err) {
             setError("Failed to access camera. Please grant permissions.");
             console.error(err);
-            setStream(null); 
         }
     };
 
     const stopCamera = () => {
-        stream?.getTracks().forEach(track => track.stop());
-        setStream(null);
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
     };
 
     const takePhoto = () => {
@@ -50,59 +53,49 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
 
             const photoData = canvasRef.current.toDataURL('image/png');
             onCapture(photoData);
-
-            stopCamera();
         }
-    };
-
-    const handleRetake = () => {
-        onRetake();
-        startCamera();
     };
 
     useEffect(() => {
         startCamera();
-        return stopCamera;
+        return () => stopCamera();
     }, []);
 
+    if (error) {
+        return (
+            <div className="text-red-500 text-center p-4">
+                {error}
+            </div>
+        );
+    }
+
     return (
-        <div className="container relative py-16">
-            <div className="relative aspect-video rounded-sm overflow-hidden">
+        <div className="space-y-4">
+            <div className="aspect-video relative rounded-lg overflow-hidden">
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="w-full h-full object-cover"
                     style={{ transform: 'scaleX(-1)' }}
                 />
                 <canvas
                     ref={canvasRef}
-                    className="absolute inset-0 w-full h-full"
-                    style={{ display: 'none' }}
+                    className="hidden"
                 />
-                {isCaptured && (
-                    <img
-                        id="captured-photo"
-                        src=""
-                        alt="Captured"
-                        className="absolute inset-0 w-full h-full object-cover"
-                        style={{ display: 'block' }}
-                    />
-                )}
             </div>
 
-            {error && <div className="text-red-500 text-center mt-4">{error}</div>}
-
-            {stream && !error && (
-                <button
-                    onClick={isCaptured ? handleRetake : takePhoto}
-                    disabled={isLoading}
-                    className="mt-4 w-full px-4 py-2 tracking-tight bg-gradient-to-tr from-blue-900 to-emerald-500 text-white rounded-sm font-medium"
-                >
-                    {isCaptured ? 'Retake Photo' : (isLoading ? 'Processing...' : 'Capture Photo')}
-                </button>
-            )}
+            <div className="flex justify-center">
+              <Button
+                  onClick={takePhoto}
+                  disabled={isLoading || !stream}
+                  className="flex items-center gap-2"
+              >
+                  <CameraIcon className="w-4 h-4" />
+                  Capture Photo
+              </Button>
+            </div>
         </div>
     );
 };
