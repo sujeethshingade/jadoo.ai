@@ -21,14 +21,15 @@ export default function Header() {
           </div>
           {/* Menu for large screens */}
           <div className="hidden md:block">
-            <nav className="flex gap-8 text-sm">
+            <nav className="flex justify-center gap-8 text-sm">
               <a href="#" className="text-white/70 hover:text-white transition">Gallery</a>
               <a href="#" className="text-white/70 hover:text-white transition">Search</a>
               <a href="#" className="text-white/70 hover:text-white transition">Upload</a>
             </nav>
           </div>
           <div className="flex gap-4 items-center">
-            <Button>Join waitlist</Button>
+            <Button>Sign up</Button>
+            <Button>Login</Button>
             <MenuIcon
               className="w-8 h-8 md:hidden cursor-pointer"
               onClick={() => setMenuOpen(true)}
