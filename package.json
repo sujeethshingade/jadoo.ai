@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@splinetool/react-spline": "^4.0.0",
     "@svgr/webpack": "^8.1.0",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.469.0",
