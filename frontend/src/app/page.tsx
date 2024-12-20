@@ -4,6 +4,7 @@ import Model from "@/sections/Model";
 import Footer from "@/sections/Footer";
 import InfiniteScroll from "@/sections/InfiniteScroll";
 import Picture from "@/sections/Picture";
+import SearchImage from "@/sections/Search";
 import TapeSection from "@/sections/Tape";
 import AboutSection from "@/sections/About";
 
@@ -14,6 +15,7 @@ export default function Home() {
       <Hero />
       <TapeSection />
       <Picture />
+      <SearchImage />
       <AboutSection />
       <Model />
       <InfiniteScroll />
