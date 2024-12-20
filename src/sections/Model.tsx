@@ -23,7 +23,7 @@ const useRelativeMousePosition = (to: RefObject<HTMLElement | null>) => {
     return [mouseX, mouseY];
 };
 
-export const Model = () => {
+export default function Model() {
     const sectionRef = useRef<HTMLElement>(null);
     const borderedDivRef = useRef<HTMLDivElement>(null);
     const { scrollYProgress } = useScroll({

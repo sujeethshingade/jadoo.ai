@@ -1,10 +1,12 @@
 import Navbar from "@/sections/Navbar";
-import { Model } from "@/sections/Model";
+import Hero from "@/sections/Hero";
+import Model from "@/sections/Model";
 
 export default function Home() {
   return (
     <div>
       <Navbar />
+      <Hero />
       <Model />
     </div>
   );
