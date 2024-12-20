@@ -31,6 +31,8 @@ def detect_labels_uri(uri):
     ]
     final_labels.extend(important_words)
 
+    final_labels = list(set(final_labels))
+
     print(final_labels)
     if response.error.message:
         raise Exception(
