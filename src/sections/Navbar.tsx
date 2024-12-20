@@ -4,6 +4,7 @@ import LogoIcon from "@/assets/logo.png";
 import Image from 'next/image';
 import { MenuIcon, XIcon } from 'lucide-react';
 import { Button } from "@/components/Button";
+import Link from 'next/link';
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,8 +29,12 @@ export default function Header() {
             </nav>
           </div>
           <div className="flex gap-4 items-center">
-            <Button>Sign up</Button>
-            <Button>Login</Button>
+            <Link href="/signup">
+              <Button>Sign up</Button>
+            </Link>
+            <Link href="/login">
+              <Button>Login</Button>
+            </Link>
             <MenuIcon
               className="w-8 h-8 md:hidden cursor-pointer"
               onClick={() => setMenuOpen(true)}
