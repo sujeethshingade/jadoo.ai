@@ -11,8 +11,8 @@ export default function Header() {
   return (
     <header className="py-4 border-b border-white/15 md:border-none sticky top-0 z-10">
       <div className={`absolute inset-0 backdrop-blur transition-opacity duration-300 ${menuOpen ? 'bg-black bg-opacity-50' : 'bg-transparent'}`}></div>
-      <div className="container mx-auto max-w-4xl"> {/* Changed from max-w-7xl to max-w-4xl */}
-        <div className="flex justify-between items-center md:border border-white/15 md:p-2.5 rounded-xl relative">
+      <div className="container"> 
+        <div className="flex justify-between items-center md:border border-white/15 md:p-2.5 max-w-2xl mx-auto rounded-xl relative">
           <div>
             <div className="border w-10 h-10 rounded-lg inline-flex justify-center items-center border-white/15">
               <div className="absolute inset-0 backdrop-blur -z-10 hidden md:block"></div>
