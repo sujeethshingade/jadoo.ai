@@ -1,21 +1,20 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, Heart, ArrowDown, X } from "lucide-react";
+import { Loader2, Search, Heart, ArrowDown, X, MessageCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import  ChatIcon from "@/assets/message-square.svg";
 
 interface Image {
   id: string;
   url: string;
-  uri?: string;
   signedUrl?: string;
   description?: string;
   tags?: string;
@@ -30,9 +29,11 @@ const SearchImage = () => {
   const [selectedImage, setSelectedImage] = useState<Image | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [noResultsMessage, setNoResultsMessage] = useState("");
-  const { user } = useAuth();
-  const [likedImages, setLikedImages] = useState<{ [key: string]: boolean }>({});
   const [isDownloading, setIsDownloading] = useState(false);
+  const [likedImages, setLikedImages] = useState<{ [key: string]: boolean }>({});
+
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     if (user && images.length > 0) {
@@ -66,62 +67,6 @@ const SearchImage = () => {
     } catch (err: any) {
       console.error("Error checking like status:", err.message || err);
       setLikedImages((prev) => ({ ...prev, [image.id]: false }));
-    }
-  };
-
-  const handleImageClick = async (image: Image) => {
-    setSelectedImage(image);
-  };
-
-  const handleDownloadImage = async () => {
-    if (!selectedImage?.signedUrl) {
-      toast.error("Download URL not available");
-      return;
-    }
-
-    setIsDownloading(true);
-    try {
-      const response = await fetch(selectedImage.signedUrl);
-      if (!response.ok) throw new Error('Download failed');
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `image-${selectedImage.id}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success("Image downloaded successfully");
-    } catch (error) {
-      console.error('Error downloading image:', error);
-      toast.error("Failed to download image");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleDownloadDescription = () => {
-    if (!selectedImage?.description) {
-      toast.error("No description available");
-      return;
-    }
-
-    try {
-      const blob = new Blob([selectedImage.description], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `description-${selectedImage.id}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success("Description downloaded successfully");
-    } catch (error) {
-      console.error('Error downloading description:', error);
-      toast.error("Failed to download description");
     }
   };
 
@@ -180,15 +125,10 @@ const SearchImage = () => {
   };
 
   const handleLikeToggle = async () => {
-    if (!selectedImage || !user?.id) {
-      return;
-    }
+    if (!selectedImage || !user?.id) return;
 
     const imageId = selectedImage.id;
-    if (!imageId) {
-      console.error("Selected image ID is undefined.");
-      return;
-    }
+    if (!imageId) return;
 
     setIsLiking(true);
     const isCurrentlyLiked = likedImages[imageId];
@@ -256,6 +196,64 @@ const SearchImage = () => {
     }
   };
 
+  const handleImageClick = (image: Image) => {
+    setSelectedImage(image);
+  };
+
+  const handleChatRedirect = () => {
+    if (selectedImage) {
+      sessionStorage.setItem('chatImage', JSON.stringify({
+        url: selectedImage.signedUrl || selectedImage.url,
+        description: selectedImage.description || ""
+      }));
+      router.push('/chat');
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!selectedImage?.signedUrl) {
+      toast.error("Download URL not available");
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      // Download image
+      const response = await fetch(selectedImage.signedUrl);
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `image-${selectedImage.id}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      // Download description if available
+      if (selectedImage.description) {
+        const descBlob = new Blob([selectedImage.description], { type: 'text/plain' });
+        const descUrl = window.URL.createObjectURL(descBlob);
+        const descLink = document.createElement('a');
+        descLink.href = descUrl;
+        descLink.download = `description-${selectedImage.id}.txt`;
+        document.body.appendChild(descLink);
+        descLink.click();
+        window.URL.revokeObjectURL(descUrl);
+        document.body.removeChild(descLink);
+      }
+
+      toast.success("Download completed");
+    } catch (error) {
+      console.error('Error downloading:', error);
+      toast.error("Failed to download");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="container py-16">
       <h2 className="text-4xl text-center mb-4 tracking-tighter">
@@ -311,10 +309,11 @@ const SearchImage = () => {
                         aria-label={`Likes: ${image.likes}`}
                       >
                         <Heart
-                          className={`w-6 h-6 ${likedImages[image.id]
-                            ? "text-red-500 fill-red-500"
-                            : "stroke-white fill-none"
-                            }`}
+                          className={`w-6 h-6 ${
+                            likedImages[image.id]
+                              ? "text-red-500 fill-red-500"
+                              : "stroke-white fill-none"
+                          }`}
                         />
                       </Button>
                     </div>
@@ -380,16 +379,15 @@ const SearchImage = () => {
                       {/* Action Buttons */}
                       <div className="flex justify-end gap-2 sticky top-0 bg-gray-950 pr-2 pb-2 pt-2 z-10">
                       <Button
-                          onClick={() => window.location.href = "/chat"}
-                          className="flex items-center bg-white/10 hover:bg-white/20">
-                          <ChatIcon className="w-5 h-5" />
+                          onClick={handleChatRedirect}
+                          className="flex items-center bg-white/10 hover:bg-white/20 transition-colors"
+                          title="Chat"
+                        >
+                          <MessageCircle className="w-5 h-5" />
                           <span className="ml-2">Chat</span>
-                      </Button>
-                        <Button
-                          onClick={() => {
-                            handleDownloadImage();
-                            handleDownloadDescription();
-                          }}
+                        </Button>
+                      <Button
+                          onClick={handleDownload}
                           disabled={isDownloading}
                           className="bg-white/10 hover:bg-white/20 transition-colors"
                           title="Download"
@@ -403,8 +401,6 @@ const SearchImage = () => {
                             </>
                           )}
                         </Button>
-                        
-
                         <Button
                           onClick={() => setSelectedImage(null)}
                           className="bg-white/10 hover:bg-white/20 transition-colors"
