@@ -7,167 +7,214 @@ import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Loader2, Search, Heart } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Image {
-    id: string;
-    url: string;
-    uri?: string;
-    signedUrl?: string;
-    description?: string;
-    tags?: string;
+  id: string;
+  url: string;
+  uri?: string;
+  signedUrl?: string;
+  description?: string;
+  tags?: string;
+  likes?: number; // Add a likes field
 }
 
 const SearchImage = () => {
-    const [searchQuery, setSearchQuery] = useState("");
-    const [images, setImages] = useState<Image[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [selectedImage, setSelectedImage] = useState<Image | null>(null);
-    const [hasSearched, setHasSearched] = useState(false);
-    const [noResultsMessage, setNoResultsMessage] = useState("");
-    const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [images, setImages] = useState<Image[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<Image | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [noResultsMessage, setNoResultsMessage] = useState("");
+  const { user } = useAuth();
 
-    const handleImageClick = (image: Image) => {
-        setSelectedImage(image);
-    };
+  // Handle selecting an image to view in a modal
+  const handleImageClick = (image: Image) => {
+    setSelectedImage(image);
+  };
 
-    const handleSearch = async () => {
-        setNoResultsMessage("");
-        setHasSearched(true);
-        if (!searchQuery.trim()) return;
-        setIsLoading(true);
+  // Handle searching images by tags from Supabase
+  const handleSearch = async () => {
+    setNoResultsMessage("");
+    setHasSearched(true);
+    if (!searchQuery.trim()) return;
+    setIsLoading(true);
 
-        try {
-            const { data, error } = await supabase
-                .from("images")
-                .select("*")
-                .ilike("tags", `%${searchQuery}%`);
-            if (error) throw error;
+    try {
+      // Fetch images by matching tags
+      const { data, error } = await supabase
+        .from("images")
+        .select("*") // Ensure this includes the 'likes' column
+        .ilike("tags", `%${searchQuery}%`);
+      if (error) throw error;
 
-            if (!data || data.length === 0) {
-                setNoResultsMessage(`No images found for "${searchQuery}"`); setIsLoading(false);
-                return;
-            }
+      if (!data || data.length === 0) {
+        setNoResultsMessage(`No images found for "${searchQuery}"`);
+        setIsLoading(false);
+        return;
+      }
 
-            const imageUrls = await Promise.all(
-                (data || []).map(async (image: Image) => {
-                    const { data: urlData } = await supabase.storage
-                        .from("image-store")
-                        .createSignedUrl(image.url, 3600);
-                    return {
-                        ...image,
-                        signedUrl: urlData?.signedUrl || image.url,
-                    };
-                })
-            );
+      // Generate signed URLs
+      const imageUrls = await Promise.all(
+        data.map(async (image: Image) => {
+          const { data: urlData } = await supabase.storage
+            .from("image-store")
+            .createSignedUrl(image.url, 3600);
+          return {
+            ...image,
+            signedUrl: urlData?.signedUrl || image.url,
+            likes: image.likes ?? 0, // Preserve likes if available
+          };
+        })
+      );
 
-            setImages(imageUrls);
-        } catch (err) {
-            console.error("Error searching images:", err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      setImages(imageUrls);
+    } catch (err) {
+      console.error("Error searching images:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return (
-        <div className="container py-16">
-            <div className="space-y-6">
-                {user ? (
-                    <>
-                        {/* Search Input */}
-                        <div className="flex gap-2 justify-center">
-                            <Input
-                                type="text"
-                                placeholder="Search images..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                                className="text-white border border-white/10 rounded-md"
-                            />
-                            <Button
-                                onClick={handleSearch}
-                                disabled={isLoading}
-                                className="flex items-center gap-2 border border-white/10 bg-transparent hover:bg-white/15 rounded-md transition duration-300"
-                            >
-                                {isLoading ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <div className="w-4 h-4">
-                                        <Search />
-                                    </div>
-                                )}
-                                Search
-                            </Button>
-                        </div>
+  // Handle incrementing likes for the selected image
+  const handleLike = async () => {
+    if (!selectedImage) return;
 
-                        {/* Search Results */}
-                        {noResultsMessage && <p className="text-center">{noResultsMessage}</p>}
+    try {
+      const { data, error } = await supabase
+        .from("images")
+        .update({ likes: (selectedImage.likes ?? 0) + 1 })
+        .eq("id", selectedImage.id)
+        .select()
+        .single();
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {images.map((image) => (
-                                <div key={image.id} className="relative">
-                                    <img
-                                        src={image.signedUrl || image.url}
-                                        alt={`Image ${image.id}`}
-                                        className="w-full h-auto rounded-md"
-                                        onClick={() => handleImageClick(image)}
-                                    />
-                                </div>
-                            ))}
-                        </div>
+      if (error) throw error;
+      // Update local state with new like count
+      if (data) {
+        setSelectedImage({ ...selectedImage, likes: data.likes });
+        // Update the images list as well
+        setImages((prev) =>
+          prev.map((img) =>
+            img.id === selectedImage.id ? { ...img, likes: data.likes } : img
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Error updating likes:", err);
+    }
+  };
 
-                        {selectedImage && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
-                                <Card className="bg-gray-950 w-full max-w-7xl mx-auto border border-white/10 rounded-lg m-4">
-                                    <div className="flex flex-col md:flex-row gap-6 p-4 relative max-h-[90vh]">
-                                        <ScrollArea className="w-full md:w-3/5 h-[50vh] md:h-[80vh]">
-                                            <div className="h-full flex items-center justify-center">
-                                                <img
-                                                    src={selectedImage.signedUrl || selectedImage.url}
-                                                    alt={`Image ${selectedImage.id}`}
-                                                    className="max-w-full max-h-full rounded-lg object-contain"
-                                                />
-                                            </div>
-                                        </ScrollArea>
-
-                                        <div className="w-full md:w-2/5 flex flex-col">
-                                            <ScrollArea className="h-[30vh] md:h-[80vh]">
-                                                <div className="p-4">
-                                                    <ReactMarkdown className="text-white prose prose-invert">
-                                                        {selectedImage.description || "No description available"}
-                                                    </ReactMarkdown>
-                                                </div>
-                                            </ScrollArea>
-
-                                            <Button
-                                                className="mt-4 text-white border border-white/10 hover:bg-white/10 
-                                 bg-transparent rounded-md transition duration-300 w-full md:w-auto"
-                                                onClick={() => setSelectedImage(null)}
-                                            >
-                                                Close
-                                            </Button>
-                                        </div>
-
-                                        <button
-                                            className="absolute top-2 right-2 md:hidden text-white/60 hover:text-white"
-                                            onClick={() => setSelectedImage(null)}
-                                        >
-                                            <span className="sr-only">Close</span>
-                                        </button>
-                                    </div>
-                                </Card>
-                            </div>
-                        )}
-                    </>
+  return (
+    <div className="container py-16">
+      <div className="space-y-6">
+        {user ? (
+          <>
+            {/* Search Input */}
+            <div className="flex gap-2 justify-center">
+              <Input
+                type="text"
+                placeholder="Search images..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                className="text-white border border-white/10 rounded-md"
+              />
+              <Button
+                onClick={handleSearch}
+                disabled={isLoading}
+                className="flex items-center gap-2 border border-white/10 bg-transparent hover:bg-white/15 rounded-md transition duration-300"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                    <div className="text-white text-xl text-center p-4">
-                        Please login to proceed.
-                    </div>
+                  <div className="w-4 h-4">
+                    <Search />
+                  </div>
                 )}
+                Search
+              </Button>
             </div>
-        </div>
-    );
+
+            {/* No Results Message */}
+            {noResultsMessage && <p className="text-center">{noResultsMessage}</p>}
+
+            {/* Image Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {images.map((image) => (
+                <div key={image.id} className="relative">
+                  <img
+                    src={image.signedUrl || image.url}
+                    alt={`Image ${image.id}`}
+                    className="w-full h-auto rounded-md"
+                    onClick={() => handleImageClick(image)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Modal for Selected Image */}
+            {selectedImage && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
+                <Card className="bg-gray-950 w-full max-w-7xl mx-auto border border-white/10 rounded-lg m-4">
+                  <div className="flex flex-col md:flex-row gap-6 p-4 relative max-h-[90vh]">
+                    {/* Image Display */}
+                    <ScrollArea className="w-full md:w-3/5 h-[50vh] md:h-[80vh]">
+                      <div className="h-full flex items-center justify-center">
+                        <img
+                          src={selectedImage.signedUrl || selectedImage.url}
+                          alt={`Image ${selectedImage.id}`}
+                          className="max-w-full max-h-full rounded-lg object-contain"
+                        />
+                      </div>
+                    </ScrollArea>
+
+                    {/* Description + Like Section */}
+                    <div className="w-full md:w-2/5 flex flex-col">
+                      <ScrollArea className="h-[30vh] md:h-[80vh]">
+                        <div className="p-4 text-white">
+                          <ReactMarkdown className="prose prose-invert">
+                            {selectedImage.description ?? "No description available"}
+                          </ReactMarkdown>
+                        </div>
+                      </ScrollArea>
+
+                      {/* Like Button and Count */}
+                      <div className="px-4 pb-4">
+                        <Button onClick={handleLike} className="flex items-center gap-1 bg-gradient-to-tr from-blue-900 to-emerald-500">
+                          <Heart className="w-4 h-4 text-white" />
+                          Like
+                        </Button>
+                        <span className="ml-2 text-sm text-white/80">
+                          Likes: {selectedImage.likes ?? 0}
+                        </span>
+                      </div>
+
+                      <Button
+                        className="mx-4 mt-2 text-white border border-white/10 hover:bg-white/10 bg-transparent rounded-md transition duration-300 w-full md:w-auto"
+                        onClick={() => setSelectedImage(null)}
+                      >
+                        Close
+                      </Button>
+                    </div>
+
+                    <button
+                      className="absolute top-2 right-2 md:hidden text-white/60 hover:text-white"
+                      onClick={() => setSelectedImage(null)}
+                    >
+                      <span className="sr-only">Close</span>
+                    </button>
+                  </div>
+                </Card>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-white text-xl text-center p-4">Please login to proceed.</div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default SearchImage;
