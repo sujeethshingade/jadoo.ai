@@ -34,6 +34,14 @@ logger.info("Supabase client initialized successfully.")
 
 @app.route("/update_image_info", methods=["POST"])
 def update_image_info():
+    """Handle the update of image information including labels, description, and embedding.
+    
+    This endpoint processes an image URL to:
+    1. Generate labels using Google Cloud Vision
+    2. Create a description using the VLM
+    3. Generate an embedding using Google Vertex AI
+    4. Store all information in Supabase
+    """
     data = request.get_json()
     image_id = data.get('id')
     if not image_id:
@@ -43,37 +51,64 @@ def update_image_info():
     # Fetch image record from the 'images' table
     response = supabase.table("images").select("url").eq("id", image_id).single().execute()
 
-    # if response.error:
-    #     logger.error(f"Supabase error: {response.error.message}")
-    #     return jsonify({"message": response.error.message}), 400
-
     image_url = response.data.get("url")
 
     if not image_url:
         logger.warning("Image URL not found for the provided image ID.")
         return jsonify({"message": "Image URL not found."}), 404
 
-    # Get labels from Google Vision API
+    # Get labels, description, and embedding using Google Cloud services
     try:
-        labels, description = detect_labels_uri(image_url)
+        labels, description, embedding = detect_labels_uri(image_url)
     except Exception as e:
-        logger.error(f"Error detecting labels: {str(e)}")
+        logger.error(f"Error processing image: {str(e)}")
         return jsonify({"message": str(e)}), 500
 
-    # Update the tags and description in your table
+    # Update all information in Supabase
     update_response = (
         supabase.table("images")
-        .update({"tags": ", ".join(labels), "description": description})
+        .update({
+            "tags": ", ".join(labels), 
+            "description": description,
+            "embedding": embedding
+        })
         .eq("id", image_id)
         .execute()
     )
 
-    # if update_response.error:
-    #     logger.error(f"Supabase update error: {update_response.error.message}")
-    #     return jsonify({"message": update_response.error.message}), 400
-
     logger.info(f"Image info updated successfully for image ID: {image_id}")
     return jsonify({"message": "Image info updated successfully"}), 200
+
+@app.route("/search_similar_images", methods=["POST"])
+def search_similar_images():
+    """Search for similar images based on a text query.
+    
+    This endpoint:
+    1. Takes a text query
+    2. Converts it to an embedding using Vertex AI
+    3. Finds similar images using vector similarity search in Supabase
+    """
+    query = request.json.get('query')
+    limit = request.json.get('limit', 5)
+    
+    try:
+        # Generate embedding for the search query using Vertex AI
+        embedding = embedding_generator.generate_embedding(query)
+        
+        # Search using vector similarity in Supabase
+        response = supabase.rpc(
+            'match_images',
+            {
+                'query_embedding': embedding,
+                'match_threshold': 0.7,
+                'match_count': limit
+            }
+        ).execute()
+        
+        return jsonify(response.data)
+    except Exception as e:
+        logger.error(f"Error during similarity search: {str(e)}")
+        return jsonify({"message": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
