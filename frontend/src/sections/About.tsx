@@ -6,9 +6,8 @@ import { Card } from "@/components/Card";
 import { CardHeader } from "@/components/CardHeader";
 import { ToolboxItems } from "@/components/ToolboxItems";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { supabase } from "@/lib/supabase";
-import Jadoo from "@/assets/jadoo.png";
+import Image from "next/image";
 import JavaScriptIcon from "@/assets/square-js.svg";
 import PythonIcon from "@/assets/python-5.svg";
 import FlaskIcon from "@/assets/Flask.svg";
@@ -38,12 +37,11 @@ const features = [
 
 export default function AboutSection() {
   const constraintRef = useRef(null);
-  const [mostLikedImage, setMostLikedImage] = useState(null);
+  const [trending, settrending] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchMostLikedImage = async () => {
+    const trendingImage = async () => {
       try {
-        // Fetch the image with the highest likes directly from images table
         const { data, error } = await supabase
           .from('images')
           .select('url, likes')
@@ -51,21 +49,21 @@ export default function AboutSection() {
           .limit(1)
           .single();
 
-        if (error) {
-          console.error('Error fetching most liked image:', error);
-          return;
-        }
+        if (error) throw error;
 
         if (data?.url) {
-          console.log('Found most liked image:', data);
-          setMostLikedImage(data.url);
+          const { data: signedUrlData } = await supabase.storage
+            .from('image-store')
+            .createSignedUrl(data.url, 3600);
+
+          settrending(signedUrlData?.signedUrl || data.url);
         }
       } catch (err) {
-        console.error('Failed to fetch most liked image:', err);
+        console.error('Error fetching trending image:', err);
       }
     };
 
-    fetchMostLikedImage();
+    trendingImage();
   }, []);
 
   return (
@@ -78,28 +76,26 @@ export default function AboutSection() {
         />
         <div className="mt-20 flex flex-col gap-8">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-8 lg:grid-cols-3">
-            {/* Most Liked Card */}
             <Card className="relative h-[320px] md:col-span-2 lg:col-span-1 overflow-hidden">
-              {Jadoo && (
+              {trending && (
                 <div className="absolute inset-0">
                   <Image
-                    src={Jadoo}
-                    alt="Most liked image"
+                    src={trending}
+                    alt="Trending image"
                     fill
                     className="object-cover h-full w-full rounded-md"
                     priority
                   />
-                  <div className="absolute inset-0 bg-black/40 rounded-md" />
+                  <div className="absolute inset-0 bg-transparent rounded-md" />
                 </div>
               )}
               <CardHeader
                 className="relative text-white z-10"
-                title="Most Liked"
+                title="Trending"
                 description=""
               />
             </Card>
 
-            {/* Tech Stack Card */}
             <Card className="h-[320px] p-0 md:col-span-3 lg:col-span-2">
               <CardHeader
                 title="Tech Stack"
@@ -119,7 +115,6 @@ export default function AboutSection() {
             </Card>
           </div>
 
-          {/* Additional Section */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-8 lg:grid-cols-3">
             <Card className="h-[320px] p-0 flex flex-col md:col-span-3 lg:col-span-2">
               <CardHeader
@@ -144,10 +139,10 @@ export default function AboutSection() {
             </Card>
 
             <Card className="h-[320px] p-0 relative md:col-span-2 lg:col-span-1">
-              <Image 
-                src={mapImage} 
-                alt="Map" 
-                className="h-full w-full object-cover object-left-top" 
+              <Image
+                src={mapImage}
+                alt="Map"
+                className="h-full w-full object-cover object-left-top"
               />
               <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 -translate-y-2/4 size-5 rounded-full after:content-[''] after:absolute after:inset-0 after:outline after:outline-2 after:-outline-offset-2 after:rounded-full after:outline-gray-950/30">
                 <div className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-300 to-sky-400 -z-20 animate-ping [animation-duration:2s]" />
