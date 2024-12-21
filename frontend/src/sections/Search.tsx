@@ -19,7 +19,6 @@ interface Image {
   description?: string;
   tags?: string;
   likes?: number;
-  similarity?: number; //for semantic search results
 }
 
 const SearchImage = () => {
@@ -80,63 +79,45 @@ const SearchImage = () => {
     setIsLoading(true);
 
     try {
-      // First, get embedding-based search results from your deployed endpoint
-      const searchResponse = await fetch(
-        "https://jadooai.el.r.appspot.com/search_similar_images",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: searchQuery,
-            limit: 20, // Adjust the limit as needed
-          }),
-        }
-      );
+      const { data, error } = await supabase
+        .from("images")
+        .select("*")
+        .ilike("tags", `%${searchQuery}%`);
 
-      if (!searchResponse.ok) {
-        throw new Error("Search request failed");
-      }
+      if (error) throw error;
 
-      const searchResults = await searchResponse.json();
-
-      if (!searchResults.length) {
+      if (!data || data.length === 0) {
         setNoResultsMessage(`No images found for "${searchQuery}"`);
         setImages([]);
         return;
       }
+
       const imageUrls = await Promise.all(
-        searchResults.map(async (result: any) => {
+        data.map(async (image: Image) => {
           const { data: urlData, error: urlError } = await supabase.storage
             .from("image-store")
-            .createSignedUrl(result.url, 3600);
+            .createSignedUrl(image.url, 3600);
 
-          if (urlError) {
+          if (urlError || !urlData?.signedUrl) {
             console.error("Error generating signed URL:", urlError);
             return {
-              ...result,
-              signedUrl: result.url,
-              likes: result.likes ?? 0,
-              similarity: result.similarity, // Keep the similarity score from the semantic search
+              ...image,
+              signedUrl: image.url.startsWith("http") ? image.url : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/image-store/${image.url}`,
+              likes: image.likes ?? 0,
             };
           }
+
           return {
-            ...result,
-            signedUrl: urlData?.signedUrl || result.url,
-            likes: result.likes ?? 0,
-            similarity: result.similarity,
+            ...image,
+            signedUrl: urlData.signedUrl,
+            likes: image.likes ?? 0,
           };
         })
       );
-      const sortedImages = imageUrls.sort(
-        (a, b) => (b.similarity || 0) - (a.similarity || 0)
-      );
 
-      setImages(sortedImages);
+      setImages(imageUrls);
     } catch (err: any) {
       console.error("Error searching images:", err.message || err);
-      toast.error("Error searching images. Please try again.");
       setImages([]);
     } finally {
       setIsLoading(false);
@@ -304,9 +285,7 @@ const SearchImage = () => {
               </Button>
             </div>
 
-            {noResultsMessage && (
-              <p className="text-center">{noResultsMessage}</p>
-            )}
+            {noResultsMessage && <p className="text-center">{noResultsMessage}</p>}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {images.map((image) => (
