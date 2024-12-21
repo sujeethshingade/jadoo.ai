@@ -7,3 +7,5 @@ google-cloud-aiplatform==1.75.0
 spacy==3.8.3
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 Flask-Cors==5.0.0
+nltk==3.9.1
+scikit-learn==1.6.0
