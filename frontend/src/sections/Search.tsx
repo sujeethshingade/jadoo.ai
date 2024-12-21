@@ -7,8 +7,9 @@ import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Search, Heart } from "lucide-react";
+import { Loader2, Search, Heart, ArrowDown, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 
 interface Image {
   id: string;
@@ -30,6 +31,7 @@ const SearchImage = () => {
   const [noResultsMessage, setNoResultsMessage] = useState("");
   const { user } = useAuth();
   const [likedImages, setLikedImages] = useState<{ [key: string]: boolean }>({});
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (user && images.length > 0) {
@@ -68,6 +70,58 @@ const SearchImage = () => {
 
   const handleImageClick = async (image: Image) => {
     setSelectedImage(image);
+  };
+
+  const handleDownloadImage = async () => {
+    if (!selectedImage?.signedUrl) {
+      toast.error("Download URL not available");
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      const response = await fetch(selectedImage.signedUrl);
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `image-${selectedImage.id}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Image downloaded successfully");
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      toast.error("Failed to download image");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadDescription = () => {
+    if (!selectedImage?.description) {
+      toast.error("No description available");
+      return;
+    }
+
+    try {
+      const blob = new Blob([selectedImage.description], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `description-${selectedImage.id}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Description downloaded successfully");
+    } catch (error) {
+      console.error('Error downloading description:', error);
+      toast.error("Failed to download description");
+    }
   };
 
   const handleSearch = async () => {
@@ -165,7 +219,6 @@ const SearchImage = () => {
           )
         );
       } else {
-        // Like the image
         const { error: likeError } = await supabase
           .from("likes")
           .insert([{ user_id: user.id, image_id: imageId }]);
@@ -224,9 +277,7 @@ const SearchImage = () => {
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <div className="w-4 h-4">
-                    <Search />
-                  </div>
+                  <Search className="w-4 h-4" />
                 )}
                 Search
               </Button>
@@ -247,16 +298,19 @@ const SearchImage = () => {
                     <div className="relative">
                       <div className="absolute inset-0 rounded-full opacity-50"></div>
                       <Button
-                        onClick={() => handleImageClick(image)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedImage(image);
+                          handleLikeToggle();
+                        }}
                         className="p-2 bg-transparent relative"
                         aria-label={`Likes: ${image.likes}`}
                       >
                         <Heart
-                          className={`w-6 h-6 ${
-                            likedImages[image.id]
+                          className={`w-6 h-6 ${likedImages[image.id]
                               ? "text-red-500 fill-red-500"
                               : "stroke-white fill-none"
-                          }`}
+                            }`}
                         />
                       </Button>
                     </div>
@@ -269,9 +323,33 @@ const SearchImage = () => {
             </div>
 
             {selectedImage && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-opacity-50">
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
                 <Card className="bg-gray-950 w-full max-w-7xl mx-auto border border-white/10 rounded-md m-4">
                   <div className="flex flex-col md:flex-row gap-6 p-4 relative max-h-[90vh]">
+                    {/* Top right corner buttons */}
+                    <div className="absolute top-4 right-6 flex gap-1 z-10">
+                      <Button
+                        onClick={() => { handleDownloadImage(); handleDownloadDescription(); }}
+                        disabled={isDownloading}
+                        className="p-2 bg-transparent hover:bg-transparent rounded-full"
+                        title="Download Image"
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <ArrowDown className="w-5 h-5 text-white" />
+                        )}
+                      </Button>
+
+                      <Button
+                        onClick={() => setSelectedImage(null)}
+                        className="p-2 bg-transparent hover:bg-transparent rounded-full"
+                        title="Close"
+                      >
+                        <X className="w-5 h-5 text-white" />
+                      </Button>
+                    </div>
+
                     <ScrollArea className="w-full md:w-3/5 h-[50vh] md:h-[80vh] relative">
                       <div className="h-full flex items-center justify-center">
                         <img
@@ -281,7 +359,7 @@ const SearchImage = () => {
                         />
                         <div className="absolute top-2 left-2">
                           <div className="relative">
-                            <div className="absolute inset-0 bg-transparent rounded-full opacity-50"></div>
+                            <div className="absolute inset-0 rounded-full opacity-50"></div>
                             <Button
                               onClick={handleLikeToggle}
                               className="p-2 bg-transparent relative"
@@ -289,11 +367,10 @@ const SearchImage = () => {
                               disabled={isLiking}
                             >
                               <Heart
-                                className={`w-6 h-6 ${
-                                  likedImages[selectedImage.id]
+                                className={`w-6 h-6 ${likedImages[selectedImage.id]
                                     ? "text-red-500 fill-red-500"
                                     : "stroke-white fill-none"
-                                }`}
+                                  }`}
                               />
                             </Button>
                           </div>
@@ -312,15 +389,6 @@ const SearchImage = () => {
                           </ReactMarkdown>
                         </div>
                       </ScrollArea>
-
-                      <div className="mt-8"></div>
-
-                      <Button
-                        className="mx-4 mt-2 text-white border border-white/10 hover:bg-white/10 bg-transparent rounded-md transition duration-300 w-auto"
-                        onClick={() => setSelectedImage(null)}
-                      >
-                        Close
-                      </Button>
                     </div>
                   </div>
                 </Card>
