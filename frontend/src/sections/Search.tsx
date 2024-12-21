@@ -231,7 +231,7 @@ const SearchImage = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       // Download description if available
       if (selectedImage.description) {
         const descBlob = new Blob([selectedImage.description], { type: 'text/plain' });
@@ -309,11 +309,10 @@ const SearchImage = () => {
                         aria-label={`Likes: ${image.likes}`}
                       >
                         <Heart
-                          className={`w-6 h-6 ${
-                            likedImages[image.id]
+                          className={`w-6 h-6 ${likedImages[image.id]
                               ? "text-red-500 fill-red-500"
                               : "stroke-white fill-none"
-                          }`}
+                            }`}
                         />
                       </Button>
                     </div>
@@ -349,11 +348,10 @@ const SearchImage = () => {
                             disabled={isLiking}
                           >
                             <Heart
-                              className={`w-6 h-6 ${
-                                likedImages[selectedImage.id]
+                              className={`w-6 h-6 ${likedImages[selectedImage.id]
                                   ? "text-red-500 fill-red-500"
                                   : "stroke-white fill-none"
-                              }`}
+                                }`}
                             />
                             <span className="ml-2 text-white text-sm">
                               {selectedImage.likes ?? 0}
@@ -381,7 +379,7 @@ const SearchImage = () => {
                     <div className="w-full lg:w-2/5 flex flex-col gap-4">
                       {/* Action Buttons */}
                       <div className="flex justify-end gap-2 sticky top-0 bg-gray-950 pr-2 pb-2 pt-2 z-10">
-                      <Button
+                        <Button
                           onClick={handleChatRedirect}
                           className="flex items-center bg-white/10 hover:bg-white/20 transition-colors"
                           title="Chat"
@@ -389,7 +387,7 @@ const SearchImage = () => {
                           <MessageCircle className="w-5 h-5" />
                           <span className="ml-2">Chat</span>
                         </Button>
-                      <Button
+                        <Button
                           onClick={handleDownload}
                           disabled={isDownloading}
                           className="bg-white/10 hover:bg-white/20 transition-colors"

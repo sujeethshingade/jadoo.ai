@@ -509,7 +509,7 @@ const Chats: React.FC = () => {
                               maxWidth: '70%',
                             }}
                           >
-                             {message.isImage ? (
+                            {message.isImage ? (
                               <div className="max-w-sm">
                                 <img
                                   src={message.imageUrl}
