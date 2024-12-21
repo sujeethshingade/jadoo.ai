@@ -125,7 +125,7 @@ export default function AboutSection() {
                                         drag
                                         dragConstraints={constraintRef}
                                     >
-                                        <span className="text-gray-950 font-medium">{feature.title}</span>
+                                        <span className="text-gray-950 text-sm">{feature.title}</span>
                                         <span>{feature.emoji}</span>
                                     </motion.div>
                                 ))}
