@@ -326,68 +326,84 @@ const SearchImage = () => {
             </div>
 
             {selectedImage && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center">
-                <Card className="bg-gray-950 w-full max-w-7xl mx-auto border border-white/10 rounded-md m-4">
-                  <div className="flex flex-col md:flex-row gap-6 p-4 relative max-h-[90vh]">
-                    {/* Top right corner buttons */}
-                    <div className="absolute top-4 right-6 flex gap-1 z-10">
-                      <Button
-                        onClick={() => { handleDownloadImage(); handleDownloadDescription(); }}
-                        disabled={isDownloading}
-                        className="p-2 bg-transparent hover:bg-transparent rounded-full"
-                        title="Download Image"
-                      >
-                        {isDownloading ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <ArrowDown className="w-5 h-5 text-white" />
-                        )}
-                      </Button>
-
-                      <Button
-                        onClick={() => setSelectedImage(null)}
-                        className="p-2 bg-transparent hover:bg-transparent rounded-full"
-                        title="Close"
-                      >
-                        <X className="w-5 h-5 text-white" />
-                      </Button>
-                    </div>
-
-                    <ScrollArea className="w-full md:w-3/5 h-[50vh] md:h-[80vh] relative">
-                      <div className="h-full flex items-center justify-center">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4">
+                <Card className="bg-gray-950 w-full max-w-6xl mx-auto border border-white/10 rounded-lg">
+                  <div className="flex flex-col lg:flex-row gap-6 p-6 max-h-[90vh]">
+                    <div className="lg:w-3/5 flex flex-col gap-4">
+                      <div className="relative aspect-video bg-transparent rounded-lg overflow-hidden">
                         <img
                           src={selectedImage.signedUrl || selectedImage.url}
                           alt={`Image ${selectedImage.id}`}
-                          className="max-w-full max-h-full rounded-md object-contain"
+                          className="w-full h-full object-contain"
                         />
-                        <div className="absolute top-2 left-2">
-                          <div className="relative">
-                            <div className="absolute inset-0 rounded-full opacity-50"></div>
-                            <Button
-                              onClick={handleLikeToggle}
-                              className="p-2 bg-transparent relative"
-                              aria-label={likedImages[selectedImage.id] ? "Unlike" : "Like"}
-                              disabled={isLiking}
-                            >
-                              <Heart
-                                className={`w-6 h-6 ${likedImages[selectedImage.id]
-                                  ? "text-red-500 fill-red-500"
-                                  : "stroke-white fill-none"
-                                  }`}
-                              />
-                            </Button>
-                          </div>
-                          <span className="block text-white text-sm mt-1 text-center">
-                            {selectedImage.likes ?? 0}
-                          </span>
+
+                        <div className="absolute top-4 left-4">
+                          <Button
+                            onClick={handleLikeToggle}
+                            className="bg-black/30 hover:bg-black/50 transition-colors p-2 rounded-full"
+                            aria-label={likedImages[selectedImage.id] ? "Unlike" : "Like"}
+                            disabled={isLiking}
+                          >
+                            <Heart
+                              className={`w-6 h-6 ${likedImages[selectedImage.id]
+                                ? "text-red-500 fill-red-500"
+                                : "stroke-white fill-none"
+                                }`}
+                            />
+                            <span className="ml-2 text-white text-sm">
+                              {selectedImage.likes ?? 0}
+                            </span>
+                          </Button>
                         </div>
                       </div>
-                    </ScrollArea>
 
-                    <div className="w-full md:w-2/5 flex flex-col">
-                      <ScrollArea className="h-[30vh] md:h-[80vh] overflow-auto">
-                        <div className="p-4 text-white">
-                          <ReactMarkdown className="prose prose-invert">
+                      {selectedImage.tags && (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedImage.tags.split(',').map((tag, i) => (
+                            <div
+                              key={i}
+                              className="px-3 py-1 bg-white/10 rounded-full text-sm text-white/80"
+                            >
+                              {tag.trim()}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="lg:w-2/5 flex flex-col gap-4">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          onClick={() => {
+                            handleDownloadImage();
+                            handleDownloadDescription();
+                          }}
+                          disabled={isDownloading}
+                          className="bg-white/10 hover:bg-white/20 transition-colors"
+                          title="Download"
+                        >
+                          {isDownloading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <>
+                              <ArrowDown className="w-5 h-5" />
+                              <span className="ml-2">Download</span>
+                            </>
+                          )}
+                        </Button>
+
+                        <Button
+                          onClick={() => setSelectedImage(null)}
+                          className="bg-white/10 hover:bg-white/20 transition-colors"
+                          title="Close"
+                        >
+                          <X className="w-5 h-5" />
+                        </Button>
+                      </div>
+
+                      <ScrollArea className="flex-1 h-[calc(90vh-200px)]">
+                        <div className="p-4 text-white/90">
+                          <ReactMarkdown className="prose prose-invert prose-sm">
                             {selectedImage.description ?? "No description available"}
                           </ReactMarkdown>
                         </div>
