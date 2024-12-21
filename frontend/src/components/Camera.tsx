@@ -95,20 +95,14 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        // Handle front camera mirroring
-        if (facingMode === 'user') {
-            context.save();
-            context.scale(-1, 1);
-            context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-            context.restore();
-        } else {
-            // For back camera, draw normally without mirroring
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        }
+        // Always mirror the image
+        context.save();
+        context.scale(-1, 1);
+        context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+        context.restore();
 
         try {
             const photoData = canvas.toDataURL('image/png', 1.0);
-            // Store the image without any additional transformations
             setPreviewImage(photoData);
             onCapture(photoData);
         } catch (err) {
@@ -141,14 +135,14 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
     return (
         <div className="container relative pt-12">
             <div className="relative aspect-video rounded-md overflow-hidden bg-gray-950">
-                {/* Video preview - only mirror for front camera */}
+                {/* Video preview - always mirrored */}
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
                     className="absolute inset-0 w-full h-full object-cover"
-                    style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+                    style={{ transform: 'scaleX(-1)' }}
                 />
                 
                 <canvas
