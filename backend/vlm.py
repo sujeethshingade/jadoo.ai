@@ -1,6 +1,7 @@
 import vertexai
 
 from vertexai.generative_models import GenerativeModel, Part
+import mimetypes
 
 
 def generate_description(uri):
@@ -8,7 +9,12 @@ def generate_description(uri):
 
     model = GenerativeModel("gemini-1.5-flash-002")
 
-    image_file = Part.from_uri(uri, "image/jpeg")
+    # Determine the MIME type of the image
+    mime_type, _ = mimetypes.guess_type(uri)
+    if mime_type not in ["image/jpeg", "image/png"]:
+        raise ValueError("Unsupported image type. Only JPEG and PNG are supported.")
+
+    image_file = Part.from_uri(uri, mime_type)
 
     # Query the model
     response = model.generate_content([image_file, "explain this image in detail"])
