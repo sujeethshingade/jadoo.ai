@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Camera, Upload, Loader2 } from 'lucide-react';
 import CameraComponent from '@/components/Camera';
 import { supabase } from '@/lib/supabase';
-import { createClient } from '@supabase/supabase-js' 
 
 const Picture = () => {
   const [photo, setPhoto] = useState<string | null>(null);
@@ -16,83 +15,105 @@ const Picture = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
 
   // Helper function to convert base64 to blob
   const base64ToBlob = async (base64Data: string): Promise<Blob> => {
-    // Remove the data URL prefix if present
     const base64String = base64Data.includes('base64,') 
       ? base64Data.split('base64,')[1] 
       : base64Data;
     
-    // Convert base64 to blob using fetch API
     const response = await fetch(`data:image/png;base64,${base64String}`);
     return await response.blob();
   };
 
   // Helper function to upload to Supabase
   const uploadToSupabase = async (file: Blob | File, prefix: string) => {
-    // Generate a unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const fileExtension = file instanceof File ? file.name.split('.').pop() : 'png';
     const fileName = `${prefix}-${timestamp}-${randomString}.${fileExtension}`;
-  
+
     try {
       // Upload the file to Supabase storage
       const { data, error: uploadError } = await supabase.storage
-        .from('image-store')
+        .from('image-store') // Ensure this matches your Supabase bucket name
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false,
-          contentType: file.type || 'image/jpeg', // Ensure correct content type
+          contentType: file.type || 'image/jpeg',
         });
-  
+
       if (uploadError) {
         console.error('Upload error:', uploadError);
         throw uploadError;
       }
-  
+
       console.log('Upload successful:', data);
-  
+
       // Retrieve the public URL of the uploaded file
       const { data: publicUrlData } = supabase.storage
         .from('image-store')
         .getPublicUrl(fileName);
 
-      if (!publicUrlData) {
+      if (!publicUrlData || !publicUrlData.publicUrl) {
         console.error('Failed to retrieve public URL');
         throw new Error('Failed to retrieve public URL');
       }
-  
-      if (!publicUrlData?.publicUrl) {
+
+      if (!publicUrlData || !publicUrlData.publicUrl) {
+        console.error('Failed to retrieve public URL');
         throw new Error('Failed to retrieve public URL');
       }
-  
+
+      const publicURL = publicUrlData.publicUrl;
+
       // Insert the image record into the 'images' table
-      const { error: dbError } = await supabase
+      const { data: insertedData, error: dbError } = await supabase
         .from('images')
         .insert([{
-          url: data.path,
-          public_url: publicUrlData.publicUrl,
+          url: publicURL,
           created_at: new Date().toISOString()
-        }]);
-  
+        }])
+        .select('id')
+        .single();
+
       if (dbError) {
         console.error('Database insertion error:', dbError);
-        // Proceed without throwing to return the public URL
+        throw dbError;
       }
-  
-      return publicUrlData.publicUrl;
-    } catch (err) {
+
+      if (!insertedData?.id) {
+        console.error('No ID returned from database');
+        throw new Error('Failed to retrieve image ID');
+      }
+
+      console.log
+      ('Fetched image ID:', insertedData.id);
+
+      // Make POST request to the backend endpoint with the image ID
+      const response = await fetch('https://jadooai.el.r.appspot.com/update_image_info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: insertedData.id }),
+      });
+
+      if (!response.ok) {
+        const responseData = await response.json();
+        console.error('Update endpoint error:', responseData);
+        throw new Error(responseData.message || 'Failed to update image info');
+      }
+
+      return publicURL;
+    } catch (err: any) {
       console.error('Detailed upload error:', err);
-      if (err instanceof Error && err.message.includes('not_found')) {
+      if (err.message.includes('not_found')) {
         setError('Upload bucket not found. Please check your Supabase storage configuration.');
-      } else if (err instanceof Error && err.message.includes('Authentication failed')) {
+      } else if (err.message.includes('Authentication failed')) {
         setError('Authentication required. Please log in and try again.');
+      } else if (err.message.includes('Failed to update image info')) {
+        setError('Failed to process image information. Please try again.');
       } else {
         setError('Failed to upload file to storage. Please try again.');
       }
@@ -105,7 +126,6 @@ const Picture = () => {
     setError(null);
     
     try {
-      // Convert and upload the captured photo
       const blob = await base64ToBlob(capturedPhoto);
       const publicUrl = await uploadToSupabase(blob, 'capture');
 
@@ -114,7 +134,6 @@ const Picture = () => {
       setIsCaptured(true);
     } catch (err) {
       console.error('Error uploading captured image:', err);
-      setError('Failed to upload captured image. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +151,6 @@ const Picture = () => {
       setPhoto(publicUrl);
     } catch (err) {
       console.error('Error uploading file:', err);
-      setError('Failed to upload image. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -163,11 +181,7 @@ const Picture = () => {
           className="flex items-center gap-2"
           disabled={isLoading}
         >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Upload className="w-4 h-4" />
-          )}
+          <Upload className="w-4 h-4" />
           Upload Image
         </Button>
         <input
