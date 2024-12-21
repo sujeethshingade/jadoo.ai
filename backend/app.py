@@ -15,7 +15,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Load environment variables for local development
-load_dotenv('.env.local')
+load_dotenv(".env.local")
 
 # Fetch environment variables
 supabase_url = os.getenv("SUPABASE_URL")
@@ -32,16 +32,19 @@ if not supabase_url or not supabase_key:
 supabase: Client = create_client(supabase_url, supabase_key)
 logger.info("Supabase client initialized successfully.")
 
+
 @app.route("/update_image_info", methods=["POST"])
 def update_image_info():
     data = request.get_json()
-    image_id = data.get('id')
+    image_id = data.get("id")
     if not image_id:
         logger.warning("No image ID provided in the request.")
         return jsonify({"message": "No image ID provided"}), 400
 
     # Fetch image record from the 'images' table
-    response = supabase.table("images").select("url").eq("id", image_id).single().execute()
+    response = (
+        supabase.table("images").select("url").eq("id", image_id).single().execute()
+    )
 
     # if response.error:
     #     logger.error(f"Supabase error: {response.error.message}")
@@ -75,5 +78,6 @@ def update_image_info():
     logger.info(f"Image info updated successfully for image ID: {image_id}")
     return jsonify({"message": "Image info updated successfully"}), 200
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0")
