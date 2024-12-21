@@ -119,8 +119,8 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
     }, [isCaptured]);
 
     return (
-        <div className="container relative py-16">
-            <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-900">
+        <div className="container relative pt-12">
+            <div className="relative aspect-video rounded-md overflow-hidden bg-gray-950">
                 {/* Video preview */}
                 <video
                     ref={videoRef}
@@ -167,7 +167,7 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
                     <button
                         onClick={isCaptured ? handleRetake : takePhoto}
                         disabled={isLoading}
-                        className="px-6 py-2 bg-gradient-to-tr from-blue-900 to-emerald-500 text-white rounded-lg font-medium
+                        className="px-6 py-2 bg-gradient-to-tr from-blue-900 to-emerald-500 text-white rounded-md font-medium
                                  disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
                     >
                         {isCaptured ? 'Retake Photo' : (isLoading ? 'Processing...' : 'Capture Photo')}
