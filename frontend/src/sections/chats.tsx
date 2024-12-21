@@ -71,32 +71,6 @@ const Chats: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    const fetchSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) {
-        setAccessToken(session.access_token);
-      }
-    };
-
-    fetchSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        setAccessToken(session.access_token);
-      } else {
-        setAccessToken(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -526,8 +500,8 @@ const Chats: React.FC = () => {
                         >
                           <div
                             className={`p-3 rounded-sm ${message.type === 'user'
-                              ? 'bg-primary text-white text-right'
-                              : 'bg-primary text-white text-left'
+                              ? 'bg-primary text-white'
+                              : 'bg-primary text-white'
                               }`}
                             style={{
                               wordWrap: 'break-word',
@@ -535,7 +509,7 @@ const Chats: React.FC = () => {
                               maxWidth: '70%',
                             }}
                           >
-                            {message.isImage ? (
+                             {message.isImage ? (
                               <div className="max-w-sm">
                                 <img
                                   src={message.imageUrl}
@@ -544,17 +518,14 @@ const Chats: React.FC = () => {
                                   loading="lazy"
                                 />
                               </div>
-                            ) : message.type === 'agent' ? (
-                              message.text === 'Processing your request...' ? (
-                                <span className="flex items-center">
-                                  Processing your request
-                                  <LoadingSpinner />
-                                </span>
-                              ) : (
-                                <ReactMarkdown>{message.text}</ReactMarkdown>
-                              )
+                            ) : message.type === "agent" &&
+                              message.text === "Processing your request..." ? (
+                              <span className="flex items-center">
+                                Processing your request
+                                <LoadingSpinner />
+                              </span>
                             ) : (
-                              message.text
+                              <ReactMarkdown>{message.text}</ReactMarkdown>
                             )}
                           </div>
                         </div>
