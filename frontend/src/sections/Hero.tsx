@@ -1,8 +1,41 @@
-import ArrowDown from "@/assets/arrow-down.svg";
+import { MemoryBubble } from "@/components/MemoryBubble";
 import grainImage from "@/assets/grain.jpg";
 import StarIcon from "@/assets/star.svg";
 import SparkleIcon from "@/assets/sparkle.svg";
 import { HeroOrbit } from "@/components/HeroOrbit";
+
+const memories = [
+  {
+    name: "Maria Garcia",
+    story: "The smell of grandma's fresh bread on Sunday mornings in Barcelona.",
+    position: { top: "15%", left: "20%" }
+  },
+  {
+    name: "David Kim",
+    story: "Playing piano with his daughter for the first time, watching her eyes light up.",
+    position: { top: "5%", right: "25%" }
+  },
+  {
+    name: "Emma Thompson",
+    story: "Finding her grandmother's handwritten recipe book in an old attic box.",
+    position: { bottom: "40%", right: "10%" }
+  },
+  {
+    name: "Michael Patel",
+    story: "The moment he scored the winning goal in his high school championship.",
+    position: { top: "45%", left: "15%" }
+  },
+  {
+    name: "Sophie Laurent",
+    story: "First snowfall in Paris, sharing hot chocolate with her best friend.",
+    position: { bottom: "10%", right: "30%" }
+  },
+  {
+    name: "John Martinez",
+    story: "Teaching his son to ride a bike in the park on a sunny autumn day.",
+    position: { bottom: "10%", left: "25%" }
+  }
+];
 
 export default function Hero() {
   return (
@@ -17,6 +50,16 @@ export default function Hero() {
         <div className="size-[1020px] hero-ring"></div>
         <div className="size-[1220px] hero-ring"></div>
         <div className="size-[1420px] hero-ring"></div>
+
+        {memories.map((memory, index) => (
+          <MemoryBubble
+            key={index}
+            name={memory.name}
+            story={memory.story}
+            position={memory.position}
+          />
+        ))}
+
         <HeroOrbit size={800} rotation={-72} shouldOrbit orbitDuration="48s" shouldSpin spinDuration="10s">
           <StarIcon className="size-28 text-emerald-300" />
         </HeroOrbit>
@@ -51,9 +94,6 @@ export default function Hero() {
       <div className="container">
         <div className="flex flex-col items-center"></div>
         <div className="max-w-lg mx-auto relative">
-          {/* Covering div for animation */}
-          <div className="absolute inset-0 bg-gray-950 animate-reveal-cover z-20"></div>
-          {/* Text content */}
           <h1 className="font-serif text-3xl md:text-5xl text-center mt-8 tracking-wide relative z-10">
             Unveiling Stories Behind Every Pixel.
           </h1>
