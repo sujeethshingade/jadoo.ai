@@ -164,76 +164,71 @@ const Picture = () => {
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto p-6 mt-6">
-      {/* Action Buttons */}
-      <div className="flex gap-4 mb-6">
-        <Button
-          onClick={() => setShowCamera(prev => !prev)}
-          className="flex items-center gap-2"
-        >
-          <Camera className="w-4 h-4" />
-          {showCamera ? 'Hide Camera' : 'Take Picture'}
-        </Button>
-
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          variant="secondary"
-          className="flex items-center gap-2"
-          disabled={isLoading}
-        >
-          <Upload className="w-4 h-4" />
-          Upload Image
-        </Button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileUpload}
-          accept="image/*"
-          className="hidden"
-        />
-      </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="text-red-500 mb-4 text-center">
-          {error}
-        </div>
-      )}
-
-      {/* Camera Section */}
-      {showCamera && (
+    <div className='container'>
+      <Card className="w-full bg-transparent border-none mx-auto">
+        {/* Camera Section */}
         <div className="relative mb-6">
-          <CameraComponent 
-            onCapture={handleCapture} 
-            isLoading={isLoading}
+          <CameraComponent
+            onCapture={handleCapture}
+            isLoading={isLoading} 
             onRetake={handleRetake}
             isCaptured={isCaptured}
           />
-          
-          {capturedImage && (
-            <div className="absolute inset-0">
-              <img 
-                src={capturedImage} 
-                alt="Captured"
-                className="w-full h-full object-cover rounded-lg"
-              />
+        </div>
+  
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2">
+          <div className="text-center">
+            <p className="text-white mb-8">Or</p>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              variant="secondary"
+              className="flex mt-2 items-center gap-2 bg-transparent border text-white border-white/15 hover:bg-white/10 mx-auto"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Upload className="w-4 h-4" />
+              )}
+              Upload Image File
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept="image/*"
+              className="hidden"
+            />
+          </div>
+        </div>
+  
+        {/* Error Display */}
+        {error && (
+          <div className="text-red-500 mt-4 text-center">
+            {error}
+          </div>
+        )}
+  
+        {/* Success Message */}
+        {photo && !capturedImage && (
+          <div className="mt-6 text-center container overflow-x-clip">
+            <div className="flex items-center justify-center gap-2 text-green-500 mb-4">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <span>Image uploaded successfully!</span>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Display uploaded/captured image */}
-      {photo && !showCamera && (
-        <div className="mt-4">
-          <img 
-            src={photo} 
-            alt="Uploaded/Captured" 
-            className="max-w-md mx-auto rounded-lg shadow-lg"
-          />
-        </div>
-      )}
-    </Card>
-  );
-};
+            <img
+              src={photo}
+              alt="Uploaded"
+              className="mx-auto rounded-md"
+            />
+          </div>
+        )}
+        </Card>
+      </div>
+    );
+  }
 
 export default Picture;
