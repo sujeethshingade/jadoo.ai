@@ -117,8 +117,8 @@ const SignupPage = () => {
                 <Image
                     src={Gif}
                     alt="Jadoo GIF"
-                    width={200}
-                    height={200}
+                    width={300}
+                    height={300}
                     priority
                     className="mx-auto rounded-md"
                 />
