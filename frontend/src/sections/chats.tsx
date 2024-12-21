@@ -2,18 +2,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Paperclip, ArrowUp, RefreshCcw } from 'lucide-react';
+import { ArrowUp, RefreshCcw } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-
-type ChatTopic = {
-  title: string;
-  prompt: string;
-};
 
 // LoadingSpinner Component for Animation
 const LoadingSpinner: React.FC = () => {
@@ -44,15 +38,15 @@ const LoadingSpinner: React.FC = () => {
 };
 
 interface ChatMessage {
-    id?: number;
-    text: string;
-    type: 'user' | 'agent';
-    isImage?: boolean;
-    imageUrl?: string;
-  }
+  id?: number;
+  text: string;
+  type: 'user' | 'agent';
+  isImage?: boolean;
+  imageUrl?: string;
+}
 
-const chats: React.FC = () => {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+const Chats: React.FC = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   const [inputMessage, setInputMessage] = useState('');
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -61,29 +55,6 @@ const chats: React.FC = () => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [accessToken, setAccessToken] = useState<string | null>(null);
-
-  const sustainabilityTopics: ChatTopic[] = [
-    {
-      title: 'Transportation using Renewable Energy',
-      prompt:
-        'Discuss the latest innovations in renewable energy for transportation.',
-    },
-    {
-      title: 'Sustainable Packaging of Goods',
-      prompt:
-        'Analyze the current trends and challenges in sustainable packaging solutions.',
-    },
-    {
-      title: 'Carbon Footprint Comparison',
-      prompt:
-        'Compare carbon footprints for different activities or organizations.',
-    },
-    {
-      title: 'Environmental Impact Reports',
-      prompt:
-        'What are the key components of a comprehensive environmental impact report?',
-    },
-  ];
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -302,39 +273,10 @@ const chats: React.FC = () => {
     }
   };
 
-  const handleTopicClick = async (topic: ChatTopic) => {
-    try {
-      setIsLoading(true);
-
-      if (!currentSessionId) {
-        await createNewSession();
-      }
-
-      const newMessages = [
-        { text: topic.prompt, type: 'user' as const },
-        { text: 'Processing your request...', type: 'agent' as const },
-      ];
-
-      setMessages((prev) => [...prev, ...newMessages]);
-      await saveMessagesToDatabase(newMessages);
-
-      if (messages.length === 0) {
-        await updateSessionTitle(topic.title);
-      }
-    } catch (err) {
-      console.error('Error processing topic:', err);
-    } finally {
-      setIsLoading(false);
-      scrollToBottom();
-    }
-  };
-
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
 
     try {
-      
-  
       createNewSession();
 
       setIsLoading(true);
@@ -350,8 +292,6 @@ const chats: React.FC = () => {
         type: 'agent' as const,
       };
       setMessages((prev) => [...prev, processingMessage]);
-
-      
 
       const response = await fetch('http://localhost:5000/api/v1/chat', {
         method: 'POST',
@@ -467,7 +407,7 @@ const chats: React.FC = () => {
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
-        } catch (e) {}
+        } catch (e) { }
         throw new Error(errorMessage);
       }
 
@@ -553,10 +493,10 @@ const chats: React.FC = () => {
   };
 
   return (
-    <div className="container py-16 bg-gray-950 text-white ">
+    <div className="container py-10 bg-gray-950 text-white">
       {user ? (
         <>
-          <Card className="bg-gray-950 rounded-none">
+          <Card className="bg-gray-950 rounded-md border border-white/10">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="font-semibold text-lg text-white">
                 Jadoo.ai
@@ -571,27 +511,24 @@ const chats: React.FC = () => {
               </button>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="h-[500px] flex flex-col">
+              <div className="h-[350px] flex flex-col">
                 <ScrollArea ref={scrollAreaRef} className="flex-grow pr-4 -mr-4">
                   <div className="space-y-4">
                     {messages.length === 0 ? (
                       <div className={`text-center flex items-center justify-center h-full text-white`}>
-                        Upload a document or Start a conversation...
                       </div>
                     ) : (
                       messages.map((message, index) => (
                         <div
                           key={index}
-                          className={`flex ${
-                            message.type === 'user' ? 'justify-end' : 'justify-start'
-                          } animate-fade-in`}
+                          className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'
+                            } animate-fade-in`}
                         >
                           <div
-                            className={`p-3 rounded-sm ${
-                              message.type === 'user'
-                                ? 'bg-primary text-white text-right'
-                                : 'bg-primary text-white text-left'
-                            }`}
+                            className={`p-3 rounded-sm ${message.type === 'user'
+                              ? 'bg-primary text-white text-right'
+                              : 'bg-primary text-white text-left'
+                              }`}
                             style={{
                               wordWrap: 'break-word',
                               display: 'inline-block',
@@ -612,7 +549,7 @@ const chats: React.FC = () => {
                                 <span className="flex items-center">
                                   Processing your request
                                   <LoadingSpinner />
-                                  </span>
+                                </span>
                               ) : (
                                 <ReactMarkdown>{message.text}</ReactMarkdown>
                               )
@@ -634,14 +571,14 @@ const chats: React.FC = () => {
                       e.key === 'Enter' && handleSendMessage()
                     }
                     placeholder="Send a message..."
-                    className="w-full bg-gray-950 text-white border pl-4 pr-20 py-5 outline-none focus:border-primary"
+                    className="w-full bg-gray-950 text-white border border-white/10 rounded-md pl-4 pr-20 py-5 outline-none"
                     disabled={isLoading}
                   />
 
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-4">
                     <Button
                       onClick={handleSendMessage}
-                      className="transition-colors duration-300 text-white"
+                      className="text-white bg-transparent"
                       disabled={isLoading}
                     >
                       <ArrowUp className="w-5 h-5" />
@@ -660,10 +597,10 @@ const chats: React.FC = () => {
           />
         </>
       ) : (
-        <div className="text-center">Please login to continue...</div>
+        <div className="text-center text-xl">Please login to proceed.</div>
       )}
     </div>
   );
 };
 
-export default chats;
+export default Chats;
