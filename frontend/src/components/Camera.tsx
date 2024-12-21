@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Camera as CameraIcon } from 'lucide-react';
 
 interface CameraProps {
     onCapture: (photo: string) => void;
@@ -9,7 +11,7 @@ interface CameraProps {
     isCaptured: boolean;
 }
 
-const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptured }) => {
+const Camera: React.FC<CameraProps> = ({ onCapture, isLoading }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
@@ -127,7 +129,7 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
                     autoPlay
                     playsInline
                     muted
-                    className="absolute inset-0 w-full h-full object-cover"
+                    className="w-full h-full object-cover"
                     style={{ transform: 'scaleX(-1)' }}
                 />
                 
