@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Camera as CameraIcon, RefreshCw } from 'lucide-react';
 
 interface CameraProps {
     onCapture: (photo: string) => void;
@@ -14,19 +15,30 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [error, setError] = useState<string | null>(null);
-    // Add state for the captured image preview
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+    const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+
+    const checkForMultipleCameras = async () => {
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            setHasMultipleCameras(videoDevices.length > 1);
+        } catch (err) {
+            console.error('Error checking for cameras:', err);
+            setHasMultipleCameras(false);
+        }
+    };
 
     const startCamera = async () => {
         try {
-            // Stop any existing stream
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
 
             const mediaStream = await navigator.mediaDevices.getUserMedia({
                 video: { 
-                    facingMode: "user",
+                    facingMode: facingMode,
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 },
@@ -36,7 +48,6 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
             setStream(mediaStream);
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
-                // Ensure video is fully loaded before playing
                 videoRef.current.onloadedmetadata = () => {
                     if (videoRef.current) {
                         videoRef.current.play().catch(err => {
@@ -55,6 +66,11 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
             );
             setStream(null);
         }
+    };
+
+    const switchCamera = async () => {
+        setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+        await startCamera();
     };
 
     const stopCamera = () => {
@@ -76,21 +92,23 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
         
         if (!context) return;
 
-        // Set canvas dimensions to match video
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        // Handle mirroring for selfie view
-        context.save();
-        context.scale(-1, 1);
-        context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-        context.restore();
+        // Only mirror for front-facing camera
+        if (facingMode === 'user') {
+            context.save();
+            context.scale(-1, 1);
+            context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            context.restore();
+        } else {
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        }
 
         try {
-            // Convert to base64 with maximum quality
             const photoData = canvas.toDataURL('image/png', 1.0);
-            setPreviewImage(photoData); // Set the preview image
-            onCapture(photoData); // Send to parent component
+            setPreviewImage(photoData);
+            onCapture(photoData);
         } catch (err) {
             console.error('Error capturing photo:', err);
             setError('Failed to capture photo. Please try again.');
@@ -99,19 +117,19 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
 
     const handleRetake = () => {
         setError(null);
-        setPreviewImage(null); // Clear the preview image
+        setPreviewImage(null);
         onRetake();
         startCamera();
     };
 
     useEffect(() => {
+        checkForMultipleCameras();
         startCamera();
         return () => {
             stopCamera();
         };
     }, []);
 
-    // Reset preview image when isCaptured changes to false
     useEffect(() => {
         if (!isCaptured) {
             setPreviewImage(null);
@@ -121,23 +139,20 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
     return (
         <div className="container relative pt-12">
             <div className="relative aspect-video rounded-md overflow-hidden bg-gray-950">
-                {/* Video preview */}
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
                     muted
                     className="absolute inset-0 w-full h-full object-cover"
-                    style={{ transform: 'scaleX(-1)' }}
+                    style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
                 />
                 
-                {/* Hidden canvas for capturing */}
                 <canvas
                     ref={canvasRef}
                     className="hidden"
                 />
                 
-                {/* Captured photo display */}
                 {isCaptured && previewImage && (
                     <img
                         src={previewImage}
@@ -146,30 +161,39 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
                     />
                 )}
 
-                {/* Loading overlay */}
                 {isLoading && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-transparent bg-opacity-50 flex items-center justify-center">
                         <div className="text-white">Processing...</div>
                     </div>
                 )}
+
+                {/* Camera switch button */}
+                {hasMultipleCameras && !isCaptured && !isLoading && (
+                    <button
+                        onClick={switchCamera}
+                        className="absolute top-4 right-4 p-2 bg-transparent bg-opacity-50 rounded-full text-white
+                                 hover:bg-opacity-70 transition-opacity"
+                    >
+                        <RefreshCw className="w-6 h-6" />
+                    </button>
+                )}
             </div>
 
-            {/* Error display */}
             {error && (
                 <div className="text-red-500 text-center mt-4 p-2 bg-red-50 rounded">
                     {error}
                 </div>
             )}
 
-            {/* Camera controls */}
             {stream && !error && (
                 <div className="mt-4 flex justify-center">
                     <button
                         onClick={isCaptured ? handleRetake : takePhoto}
                         disabled={isLoading}
                         className="px-6 py-2 bg-gradient-to-tr from-blue-900 to-emerald-500 text-white rounded-md font-medium
-                                 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+                                 disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex items-center gap-2"
                     >
+                        <CameraIcon className="w-5 h-5" />
                         {isCaptured ? 'Retake Photo' : (isLoading ? 'Processing...' : 'Capture Photo')}
                     </button>
                 </div>
