@@ -1,3 +1,34 @@
+from google.cloud import aiplatform
+from vertexai.language_models import TextEmbeddingModel
+import os
+from typing import List
+
+class EmbeddingGenerator:
+    def __init__(self):
+        """Initialize the Google Vertex AI client for generating embeddings."""
+        # Initialize Vertex AI with your project configuration
+        aiplatform.init(
+            project=os.getenv("GOOGLE_CLOUD_PROJECT"),
+            location=os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+        )
+        # Load the latest version of Google's text embedding model
+        self.model = TextEmbeddingModel.from_pretrained("textembedding-gecko@latest")
+    
+    def generate_embedding(self, text: str) -> List[float]:
+        """Generate embedding for the given text description using Google's Vertex AI.
+        
+        Args:
+            text: The text to generate embedding for
+            
+        Returns:
+            A list of floating point numbers representing the embedding
+        """
+        # Get embeddings returns a list of embeddings, but we're only sending one text
+        embeddings = self.model.get_embeddings([text])
+        # Return the embedding values for the first (and only) text
+        return embeddings[0].values
+
+# Modified label.py
 from vlm import generate_description
 import en_core_web_sm
 from embedding_utils import EmbeddingGenerator

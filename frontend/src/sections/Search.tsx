@@ -19,6 +19,7 @@ interface Image {
   description?: string;
   tags?: string;
   likes?: number;
+  similarity?: number; //for semantic search results
 }
 
 const SearchImage = () => {
@@ -79,45 +80,63 @@ const SearchImage = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("images")
-        .select("*")
-        .ilike("tags", `%${searchQuery}%`);
+      // First, get embedding-based search results from your deployed endpoint
+      const searchResponse = await fetch(
+        "https://jadooai.el.r.appspot.com/search_similar_images",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: searchQuery,
+            limit: 20, // Adjust the limit as needed
+          }),
+        }
+      );
 
-      if (error) throw error;
+      if (!searchResponse.ok) {
+        throw new Error("Search request failed");
+      }
 
-      if (!data || data.length === 0) {
+      const searchResults = await searchResponse.json();
+
+      if (!searchResults.length) {
         setNoResultsMessage(`No images found for "${searchQuery}"`);
         setImages([]);
         return;
       }
-
       const imageUrls = await Promise.all(
-        data.map(async (image: Image) => {
+        searchResults.map(async (result: any) => {
           const { data: urlData, error: urlError } = await supabase.storage
             .from("image-store")
-            .createSignedUrl(image.url, 3600);
+            .createSignedUrl(result.url, 3600);
 
           if (urlError) {
             console.error("Error generating signed URL:", urlError);
             return {
-              ...image,
-              signedUrl: image.url,
-              likes: image.likes ?? 0,
+              ...result,
+              signedUrl: result.url,
+              likes: result.likes ?? 0,
+              similarity: result.similarity, // Keep the similarity score from the semantic search
             };
           }
-
           return {
-            ...image,
-            signedUrl: urlData?.signedUrl || image.url,
-            likes: image.likes ?? 0,
+            ...result,
+            signedUrl: urlData?.signedUrl || result.url,
+            likes: result.likes ?? 0,
+            similarity: result.similarity,
           };
         })
       );
+      const sortedImages = imageUrls.sort(
+        (a, b) => (b.similarity || 0) - (a.similarity || 0)
+      );
 
-      setImages(imageUrls);
+      setImages(sortedImages);
     } catch (err: any) {
       console.error("Error searching images:", err.message || err);
+      toast.error("Error searching images. Please try again.");
       setImages([]);
     } finally {
       setIsLoading(false);
@@ -285,7 +304,9 @@ const SearchImage = () => {
               </Button>
             </div>
 
-            {noResultsMessage && <p className="text-center">{noResultsMessage}</p>}
+            {noResultsMessage && (
+              <p className="text-center">{noResultsMessage}</p>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {images.map((image) => (
@@ -343,14 +364,17 @@ const SearchImage = () => {
                           <Button
                             onClick={handleLikeToggle}
                             className="bg-black/50 hover:bg-black/70 transition-colors p-2 rounded-full"
-                            aria-label={likedImages[selectedImage.id] ? "Unlike" : "Like"}
+                            aria-label={
+                              likedImages[selectedImage.id] ? "Unlike" : "Like"
+                            }
                             disabled={isLiking}
                           >
                             <Heart
-                              className={`w-6 h-6 ${likedImages[selectedImage.id]
+                              className={`w-6 h-6 ${
+                                likedImages[selectedImage.id]
                                   ? "text-red-500 fill-red-500"
                                   : "stroke-white fill-none"
-                                }`}
+                              }`}
                             />
                             <span className="ml-2 text-white text-sm">
                               {selectedImage.likes ?? 0}
@@ -362,7 +386,7 @@ const SearchImage = () => {
                       {/* Tags */}
                       {selectedImage.tags && (
                         <div className="flex flex-wrap items-center gap-2 mb-4 ml-4 mt-4 lg:mb-0">
-                          {selectedImage.tags.split(',').map((tag, i) => (
+                          {selectedImage.tags.split(",").map((tag, i) => (
                             <div
                               key={i}
                               className="px-3 py-1 bg-white/10 rounded-full text-sm text-white/80"
@@ -414,7 +438,8 @@ const SearchImage = () => {
                       <ScrollArea className="flex-1 h-[300px] lg:h-[calc(90vh-200px)]">
                         <div className="p-4 text-white/90">
                           <ReactMarkdown className="prose prose-invert prose-sm">
-                            {selectedImage.description ?? "No description available"}
+                            {selectedImage.description ??
+                              "No description available"}
                           </ReactMarkdown>
                         </div>
                       </ScrollArea>
@@ -425,7 +450,9 @@ const SearchImage = () => {
             )}
           </>
         ) : (
-          <div className="text-white text-xl text-center p-4">Please login to proceed.</div>
+          <div className="text-white text-xl text-center p-4">
+            Please login to proceed.
+          </div>
         )}
       </div>
     </div>
