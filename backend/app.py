@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
+from backend.embedding_utils import EmbeddingGenerator
 from label import detect_labels_uri
 from dotenv import load_dotenv
 import os
@@ -88,27 +89,39 @@ def search_similar_images():
     2. Converts it to an embedding using Vertex AI
     3. Finds similar images using vector similarity search in Supabase
     """
-    query = request.json.get('query')
-    limit = request.json.get('limit', 5)
-    
+
     try:
-        # Generate embedding for the search query using Vertex AI
-        embedding = embedding_generator.generate_embedding(query)
+        data = request.get_json()
+        query = data.get('query')
+        limit = data.get('limit', 20)
+
+        if not query:
+            return jsonify({"error": "No query provided"}), 400
+
+        # Initialize the embedding model
+        embedding_generator = EmbeddingGenerator()
+        
+        # Generate embedding for the search query
+        query_embedding = embedding_generator.generate_embedding(query)
         
         # Search using vector similarity in Supabase
         response = supabase.rpc(
             'match_images',
             {
-                'query_embedding': embedding,
-                'match_threshold': 0.7,
+                'query_embedding': query_embedding,
+                'match_threshold': 0.5,  # Adjust this threshold as needed
                 'match_count': limit
             }
         ).execute()
-        
+
+        if response.error:
+            raise Exception(response.error.message)
+
         return jsonify(response.data)
+
     except Exception as e:
         logger.error(f"Error during similarity search: {str(e)}")
-        return jsonify({"message": str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
