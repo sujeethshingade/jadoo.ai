@@ -95,18 +95,20 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
 
-        // Only mirror for front-facing camera
+        // Handle front camera mirroring
         if (facingMode === 'user') {
             context.save();
             context.scale(-1, 1);
             context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
             context.restore();
         } else {
+            // For back camera, draw normally without mirroring
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
         }
 
         try {
             const photoData = canvas.toDataURL('image/png', 1.0);
+            // Store the image without any additional transformations
             setPreviewImage(photoData);
             onCapture(photoData);
         } catch (err) {
@@ -139,6 +141,7 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
     return (
         <div className="container relative pt-12">
             <div className="relative aspect-video rounded-md overflow-hidden bg-gray-950">
+                {/* Video preview - only mirror for front camera */}
                 <video
                     ref={videoRef}
                     autoPlay
@@ -153,6 +156,7 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
                     className="hidden"
                 />
                 
+                {/* Captured photo - display without mirroring */}
                 {isCaptured && previewImage && (
                     <img
                         src={previewImage}
@@ -162,7 +166,7 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
                 )}
 
                 {isLoading && (
-                    <div className="absolute inset-0 bg-transparent bg-opacity-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                         <div className="text-white">Processing...</div>
                     </div>
                 )}
@@ -171,7 +175,7 @@ const Camera: React.FC<CameraProps> = ({ onCapture, isLoading, onRetake, isCaptu
                 {hasMultipleCameras && !isCaptured && !isLoading && (
                     <button
                         onClick={switchCamera}
-                        className="absolute top-4 right-4 p-2 bg-transparent bg-opacity-50 rounded-full text-white
+                        className="absolute top-4 right-4 p-2 bg-black bg-opacity-50 rounded-full text-white
                                  hover:bg-opacity-70 transition-opacity"
                     >
                         <RefreshCw className="w-6 h-6" />
