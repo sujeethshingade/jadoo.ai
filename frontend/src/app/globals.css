@@ -17,3 +17,52 @@
         @apply lg:max-w-5xl;
     }
 }
+
+{/*@layer utilities {
+    @keyframes unveiling {
+      0% {
+        clip-path: inset(0 100% 0 0);
+      }
+      100% {
+        clip-path: inset(0 0 0 0);
+      }
+    }
+    .animate-unveil {
+      animation: unveiling 5s ease forwards;
+      display: inline-block;
+      overflow: hidden;
+    }
+  } */}
+
+
+@layer base {
+  .hero-ring {
+    @apply absolute inset-0 border-2 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-emerald-300/5 shadow-[0_0_80px_inset] shadow-emerald-300/5;
+  }
+  :root {
+    --radius: 0.5rem;
+  }
+}
+
+@layer utilities {
+  .container {
+    @apply lg:max-w-5xl;
+  }
+}
+
+@layer utilities {
+  /* New keyframes for reveal-cover animation */
+  @keyframes reveal-cover {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-100%);
+    }
+  }
+  .animate-reveal-cover {
+    animation: reveal-cover 15s ease forwards;
+  }
+}
