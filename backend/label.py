@@ -26,7 +26,7 @@ def detect_labels_uri(uri):
     important_words = [
         ent.text
         for ent in doc.ents
-        if ent.label_ in ("GPE", "ORG", "PERSON", "LOC", "PRODUCT", "EVENT")
+        if ent.label_ in ("GPE", "ORG", "PERSON", "LOC", "PRODUCT", "EVENT", "NORP", "FAC", "LAW", "WORK_OF_ART", "LANGUAGE")
     ]
     final_labels.extend(important_words)
 
