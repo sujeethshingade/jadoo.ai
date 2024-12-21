@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
-from backend.embedding_utils import EmbeddingGenerator
+from embedding_utils import EmbeddingGenerator
 from label import detect_labels_uri
 from dotenv import load_dotenv
 import os
