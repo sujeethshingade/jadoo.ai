@@ -257,6 +257,9 @@ const SearchImage = () => {
 
   return (
     <div className="container py-16">
+      <h2 className="text-4xl text-center mb-4 tracking-tighter">
+        Find them out here!
+      </h2>
       <div className="space-y-6">
         {user ? (
           <>
@@ -308,8 +311,8 @@ const SearchImage = () => {
                       >
                         <Heart
                           className={`w-6 h-6 ${likedImages[image.id]
-                              ? "text-red-500 fill-red-500"
-                              : "stroke-white fill-none"
+                            ? "text-red-500 fill-red-500"
+                            : "stroke-white fill-none"
                             }`}
                         />
                       </Button>
@@ -368,8 +371,8 @@ const SearchImage = () => {
                             >
                               <Heart
                                 className={`w-6 h-6 ${likedImages[selectedImage.id]
-                                    ? "text-red-500 fill-red-500"
-                                    : "stroke-white fill-none"
+                                  ? "text-red-500 fill-red-500"
+                                  : "stroke-white fill-none"
                                   }`}
                               />
                             </Button>
