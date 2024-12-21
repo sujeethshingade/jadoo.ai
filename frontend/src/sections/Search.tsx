@@ -327,27 +327,29 @@ const SearchImage = () => {
 
             {selectedImage && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4">
-                <Card className="bg-gray-950 w-full max-w-6xl mx-auto border border-white/10 rounded-lg">
-                  <div className="flex flex-col lg:flex-row gap-6 p-6 max-h-[90vh]">
-                    <div className="lg:w-3/5 flex flex-col gap-4">
-                      <div className="relative aspect-video bg-transparent rounded-lg overflow-hidden">
+                <Card className="bg-gray-950 w-full max-w-6xl mx-auto border border-white/10 rounded-md">
+                  <div className="flex flex-col lg:flex-row gap-6 max-h-[90vh] overflow-auto">
+                    {/* Image Section */}
+                    <div className="w-full lg:w-3/5 flex flex-col gap-4">
+                      <div className="relative aspect-video bg-transparent rounded-md overflow-hidden">
                         <img
                           src={selectedImage.signedUrl || selectedImage.url}
                           alt={`Image ${selectedImage.id}`}
                           className="w-full h-full object-contain"
                         />
 
+                        {/* Like Button */}
                         <div className="absolute top-4 left-4">
                           <Button
                             onClick={handleLikeToggle}
-                            className="bg-black/30 hover:bg-black/50 transition-colors p-2 rounded-full"
+                            className="bg-black/50 hover:bg-black/70 transition-colors p-2 rounded-full"
                             aria-label={likedImages[selectedImage.id] ? "Unlike" : "Like"}
                             disabled={isLiking}
                           >
                             <Heart
                               className={`w-6 h-6 ${likedImages[selectedImage.id]
-                                ? "text-red-500 fill-red-500"
-                                : "stroke-white fill-none"
+                                  ? "text-red-500 fill-red-500"
+                                  : "stroke-white fill-none"
                                 }`}
                             />
                             <span className="ml-2 text-white text-sm">
@@ -357,8 +359,9 @@ const SearchImage = () => {
                         </div>
                       </div>
 
+                      {/* Tags */}
                       {selectedImage.tags && (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-4 ml-4 mt-4 lg:mb-0">
                           {selectedImage.tags.split(',').map((tag, i) => (
                             <div
                               key={i}
@@ -371,8 +374,10 @@ const SearchImage = () => {
                       )}
                     </div>
 
-                    <div className="lg:w-2/5 flex flex-col gap-4">
-                      <div className="flex justify-end gap-2">
+                    {/* Description & Actions Section */}
+                    <div className="w-full lg:w-2/5 flex flex-col gap-4">
+                      {/* Action Buttons */}
+                      <div className="flex justify-end gap-2 sticky top-0 bg-gray-950 pr-2 pb-2 pt-2 z-10">
                         <Button
                           onClick={() => {
                             handleDownloadImage();
@@ -401,7 +406,8 @@ const SearchImage = () => {
                         </Button>
                       </div>
 
-                      <ScrollArea className="flex-1 h-[calc(90vh-200px)]">
+                      {/* Description with Scroll */}
+                      <ScrollArea className="flex-1 h-[300px] lg:h-[calc(90vh-200px)]">
                         <div className="p-4 text-white/90">
                           <ReactMarkdown className="prose prose-invert prose-sm">
                             {selectedImage.description ?? "No description available"}
