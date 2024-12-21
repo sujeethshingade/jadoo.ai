@@ -59,13 +59,13 @@ const Picture = () => {
       console.log('Upload successful:', data);
   
       // Retrieve the public URL of the uploaded file
-      const { data: publicUrlData, error: publicUrlError } = supabase.storage
+      const { data: publicUrlData } = supabase.storage
         .from('image-store')
         .getPublicUrl(fileName);
-  
-      if (publicUrlError) {
-        console.error('Public URL error:', publicUrlError);
-        throw publicUrlError;
+
+      if (!publicUrlData) {
+        console.error('Failed to retrieve public URL');
+        throw new Error('Failed to retrieve public URL');
       }
   
       if (!publicUrlData?.publicUrl) {
@@ -89,9 +89,9 @@ const Picture = () => {
       return publicUrlData.publicUrl;
     } catch (err) {
       console.error('Detailed upload error:', err);
-      if (err.message.includes('not_found')) {
+      if (err instanceof Error && err.message.includes('not_found')) {
         setError('Upload bucket not found. Please check your Supabase storage configuration.');
-      } else if (err.message.includes('Authentication failed')) {
+      } else if (err instanceof Error && err.message.includes('Authentication failed')) {
         setError('Authentication required. Please log in and try again.');
       } else {
         setError('Failed to upload file to storage. Please try again.');
