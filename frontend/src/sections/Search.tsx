@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Search, Heart, ArrowDown, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import  ChatIcon from "@/assets/message-square.svg";
 
 interface Image {
   id: string;
@@ -378,6 +379,12 @@ const SearchImage = () => {
                     <div className="w-full lg:w-2/5 flex flex-col gap-4">
                       {/* Action Buttons */}
                       <div className="flex justify-end gap-2 sticky top-0 bg-gray-950 pr-2 pb-2 pt-2 z-10">
+                      <Button
+                          onClick={() => window.location.href = "/chat"}
+                          className="flex items-center bg-white/10 hover:bg-white/20">
+                          <ChatIcon className="w-5 h-5" />
+                          <span className="ml-2">Chat</span>
+                      </Button>
                         <Button
                           onClick={() => {
                             handleDownloadImage();
@@ -396,6 +403,7 @@ const SearchImage = () => {
                             </>
                           )}
                         </Button>
+                        
 
                         <Button
                           onClick={() => setSelectedImage(null)}
