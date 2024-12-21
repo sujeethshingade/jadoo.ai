@@ -37,9 +37,9 @@ export default function Header() {
 
           <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
             <nav className="flex gap-8 text-sm">
-              <a href="#" className="text-white/70 hover:text-white transition">Gallery</a>
-              <a href="#" className="text-white/70 hover:text-white transition">Search</a>
-              <a href="#" className="text-white/70 hover:text-white transition">Upload</a>
+              <a href="/" className="text-white/70 hover:text-white transition">Home</a>
+              <a href="search" className="text-white/70 hover:text-white transition">Search</a>
+              <a href="upload" className="text-white/70 hover:text-white transition">Upload</a>
             </nav>
           </div>
 
@@ -75,31 +75,9 @@ export default function Header() {
           />
         </div>
         <nav className="flex flex-col items-center mt-10 gap-6 px-4">
-          <a href="#" className="text-white text-lg" onClick={() => setMenuOpen(false)}>Gallery</a>
-          <a href="#" className="text-white text-lg" onClick={() => setMenuOpen(false)}>Search</a>
-          <a href="#" className="text-white text-lg" onClick={() => setMenuOpen(false)}>Upload</a>
-          {!user ? (
-            <>
-              <Link href="/signup" className="text-white text-lg" onClick={() => setMenuOpen(false)}>
-                Sign up
-              </Link>
-              <Link href="/login" className="text-white text-lg" onClick={() => setMenuOpen(false)}>
-                Login
-              </Link>
-            </>
-          ) : (
-            <>
-              <button
-                className="text-white text-lg"
-                onClick={() => {
-                  handleSignOut();
-                  setMenuOpen(false);
-                }}
-              >
-                Sign out
-              </button>
-            </>
-          )}
+          <a href="/" className="text-white text-md" onClick={() => setMenuOpen(false)}>Home</a>
+          <a href="search" className="text-white text-md" onClick={() => setMenuOpen(false)}>Search</a>
+          <a href="upload" className="text-white text-md" onClick={() => setMenuOpen(false)}>Upload</a>
         </nav>
       </div>
     </header>
