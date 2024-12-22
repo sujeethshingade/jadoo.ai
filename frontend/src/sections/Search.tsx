@@ -79,12 +79,34 @@ const SearchImage = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from("images")
-        .select("*")
-        .ilike("tags", `%${searchQuery}%`);
+      // Step 1: Convert search query to embedding
+      const embeddingResponse = await fetch("components/api/get-embedding", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: searchQuery }),
+      });
 
-      if (error) throw error;
+      if (!embeddingResponse.ok) {
+        const errorData = await embeddingResponse.json();
+        throw new Error(errorData.message || "Failed to get embedding");
+      }
+
+      const { embedding } = await embeddingResponse.json();
+
+      // Step 2: Query Supabase for similar images using embedding
+      const { data, error } = await supabase
+        .rpc("search_images_by_embedding", {
+          query_embedding: embedding,
+          similarity_threshold: 0.7,
+          top_k: 10,
+        })
+        .select("*");
+
+      if (error) {
+        throw error;
+      }
 
       if (!data || data.length === 0) {
         setNoResultsMessage(`No images found for "${searchQuery}"`);
@@ -102,7 +124,9 @@ const SearchImage = () => {
             console.error("Error generating signed URL:", urlError);
             return {
               ...image,
-              signedUrl: image.url.startsWith("http") ? image.url : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/image-store/${image.url}`,
+              signedUrl: image.url.startsWith("http")
+                ? image.url
+                : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/image-store/${image.url}`,
               likes: image.likes ?? 0,
             };
           }
@@ -119,6 +143,7 @@ const SearchImage = () => {
     } catch (err: any) {
       console.error("Error searching images:", err.message || err);
       setImages([]);
+      setNoResultsMessage("An error occurred while searching. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -202,11 +227,14 @@ const SearchImage = () => {
 
   const handleChatRedirect = () => {
     if (selectedImage) {
-      sessionStorage.setItem('chatImage', JSON.stringify({
-        url: selectedImage.signedUrl || selectedImage.url,
-        description: selectedImage.description || ""
-      }));
-      router.push('/chat');
+      sessionStorage.setItem(
+        "chatImage",
+        JSON.stringify({
+          url: selectedImage.signedUrl || selectedImage.url,
+          description: selectedImage.description || "",
+        })
+      );
+      router.push("/chat");
     }
   };
 
@@ -220,11 +248,11 @@ const SearchImage = () => {
     try {
       // Download image
       const response = await fetch(selectedImage.signedUrl);
-      if (!response.ok) throw new Error('Download failed');
+      if (!response.ok) throw new Error("Download failed");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `image-${selectedImage.id}.jpg`;
       document.body.appendChild(a);
@@ -234,9 +262,11 @@ const SearchImage = () => {
 
       // Download description if available
       if (selectedImage.description) {
-        const descBlob = new Blob([selectedImage.description], { type: 'text/plain' });
+        const descBlob = new Blob([selectedImage.description], {
+          type: "text/plain",
+        });
         const descUrl = window.URL.createObjectURL(descBlob);
-        const descLink = document.createElement('a');
+        const descLink = document.createElement("a");
         descLink.href = descUrl;
         descLink.download = `description-${selectedImage.id}.txt`;
         document.body.appendChild(descLink);
@@ -247,7 +277,7 @@ const SearchImage = () => {
 
       toast.success("Download completed");
     } catch (error) {
-      console.error('Error downloading:', error);
+      console.error("Error downloading:", error);
       toast.error("Failed to download");
     } finally {
       setIsDownloading(false);
@@ -285,7 +315,9 @@ const SearchImage = () => {
               </Button>
             </div>
 
-            {noResultsMessage && <p className="text-center">{noResultsMessage}</p>}
+            {noResultsMessage && (
+              <p className="text-center text-white">{noResultsMessage}</p>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {images.map((image) => (
@@ -309,10 +341,11 @@ const SearchImage = () => {
                         aria-label={`Likes: ${image.likes}`}
                       >
                         <Heart
-                          className={`w-6 h-6 ${likedImages[image.id]
+                          className={`w-6 h-6 ${
+                            likedImages[image.id]
                               ? "text-red-500 fill-red-500"
                               : "stroke-white fill-none"
-                            }`}
+                          }`}
                         />
                       </Button>
                     </div>
@@ -325,8 +358,8 @@ const SearchImage = () => {
             </div>
 
             {selectedImage && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4">
-                <Card className="bg-gray-950 w-full max-w-6xl mx-auto border border-white/10 rounded-md">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                <Card className="bg-gray-950 w-full max-w-6xl mx-auto border border-white/10 rounded-md p-4">
                   <div className="flex flex-col lg:flex-row gap-6 max-h-[90vh] overflow-auto">
                     {/* Image Section */}
                     <div className="w-full lg:w-3/5 flex flex-col gap-4">
@@ -348,10 +381,11 @@ const SearchImage = () => {
                             disabled={isLiking}
                           >
                             <Heart
-                              className={`w-6 h-6 ${likedImages[selectedImage.id]
+                              className={`w-6 h-6 ${
+                                likedImages[selectedImage.id]
                                   ? "text-red-500 fill-red-500"
                                   : "stroke-white fill-none"
-                                }`}
+                              }`}
                             />
                             <span className="ml-2 text-white text-sm">
                               {selectedImage.likes ?? 0}
@@ -415,8 +449,7 @@ const SearchImage = () => {
                       <ScrollArea className="flex-1 h-[300px] lg:h-[calc(90vh-200px)]">
                         <div className="p-4 text-white/90">
                           <ReactMarkdown className="prose prose-invert prose-sm">
-                            {selectedImage.description ??
-                              "No description available"}
+                            {selectedImage.description ?? "No description available"}
                           </ReactMarkdown>
                         </div>
                       </ScrollArea>
