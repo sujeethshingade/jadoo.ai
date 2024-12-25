@@ -1,13 +1,14 @@
 "use client";
-import React, { useState, useRef, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUp, RefreshCcw } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import React, { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowUp, RefreshCcw } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { v4 as uuidv4 } from "uuid"; // Import uuid for session ID generation
 
 // LoadingSpinner Component for Animation
 const LoadingSpinner: React.FC = () => {
@@ -36,30 +37,50 @@ const LoadingSpinner: React.FC = () => {
     </span>
   );
 };
+// Utility function to extract image ID from URL
+const extractImageIdFromUrl = (url: string): string | null => {
+  try {
+    // URL format: https://[domain]/storage/v1/object/public/chat-images/[session-id]/[filename]
+    const parts = url.split('chat-images/');
+    if (parts.length > 1) {
+      return `chat-images/${parts[1]}`;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error extracting image ID:', error);
+    return null;
+  }
+};
 
 interface ChatMessage {
   id?: number;
   text: string;
-  type: 'user' | 'agent';
+  type: "user" | "agent";
   isImage?: boolean;
   imageUrl?: string;
+  imageId?: string; // Added imageId property
 }
 
 const Chats: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-
-  const [inputMessage, setInputMessage] = useState('');
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [sessionId, setSessionId] = useState<string>(""); // New state for session ID
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
+  // Generate a new session ID when the component mounts
+  useEffect(() => {
+    const newSessionId = uuidv4();
+    setSessionId(newSessionId);
+  }, []);
+
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
       const scrollElement = scrollAreaRef.current.querySelector(
-        '[data-radix-scroll-area-viewport]'
+        "[data-radix-scroll-area-viewport]"
       );
       if (scrollElement) {
         scrollElement.scrollTop = scrollElement.scrollHeight;
@@ -71,7 +92,6 @@ const Chats: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -79,14 +99,13 @@ const Chats: React.FC = () => {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) {
-          router.push('/login');
+          router.push("/login");
           return;
         }
         setUser(user);
-        await createNewSession();
       } catch (err) {
-        console.error('Auth error:', err);
-        router.push('/login');
+        console.error("Auth error:", err);
+        router.push("/login");
       }
     };
 
@@ -95,11 +114,10 @@ const Chats: React.FC = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        router.push('/login');
-      } else if (event === 'SIGNED_IN' && session?.user) {
+      if (event === "SIGNED_OUT") {
+        router.push("/login");
+      } else if (event === "SIGNED_IN" && session?.user) {
         setUser(session.user);
-        await createNewSession();
       }
     });
 
@@ -110,227 +128,125 @@ const Chats: React.FC = () => {
 
   useEffect(() => {
     // Check for initial image data from sessionStorage
-    const chatImageData = sessionStorage.getItem('chatImage');
+    const chatImageData = sessionStorage.getItem("chatImage");
     if (chatImageData) {
-      const { url, description } = JSON.parse(chatImageData);
-      sessionStorage.removeItem('chatImage');
+      const { url, description, image_id } = JSON.parse(chatImageData);
+      sessionStorage.removeItem("chatImage");
 
       // Initialize messages with image and description
       const initialMessages: ChatMessage[] = [
         {
-          text: 'Shared an image',
-          type: 'user',
+          text: "Shared an image",
+          type: "user",
           isImage: true,
-          imageUrl: url
+          imageUrl: url,
+          imageId: image_id, // Include imageId
         },
         {
-          text: description || 'No description available',
-          type: 'user'
-        }
+          text: description || "No description available",
+          type: "user",
+        },
       ];
       setMessages(initialMessages);
     }
   }, []);
 
-  const createNewSession = async () => {
-    if (!user) return;
-
-    try {
-      setIsLoading(true);
-      const { data: session, error: sessionError } = await supabase
-        .from('chat_sessions')
-        .insert({
-          title: 'New Chat',
-          user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (sessionError) {
-        throw sessionError;
-      }
-
-      if (session && session.id) {
-        setCurrentSessionId(session.id);
-        setMessages([]);
-        console.log(`New session created with ID: ${session.id}`);
-      } else {
-        throw new Error('Failed to create a new session.');
-      }
-    } catch (err) {
-      console.error('Error creating session:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSessionSelect = async (sessionId: string) => {
-    if (!user) return;
-
-    try {
-      setIsLoading(true);
-      const { data: messages, error: messagesError } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('created_at', { ascending: true });
-
-      if (messagesError) throw messagesError;
-
-      setCurrentSessionId(sessionId);
-      setMessages(
-        messages.map((msg) => ({
-          id: msg.id,
-          text: msg.content,
-          type: msg.type as 'user' | 'agent',
-        }))
-      );
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveMessagesToDatabase = async (
-    newMessages: { text: string; type: 'user' | 'agent' }[]
-  ) => {
-
-    const { data: insertedMessages, error: messagesError } = await supabase
-      .from('messages')
-      .insert(
-        newMessages.map((msg) => ({
-          session_id: currentSessionId,
-          content: msg.text,
-          type: msg.type,
-        }))
-      )
-      .select();
-
-
-    if (insertedMessages) {
-      setMessages((prevMessages) => {
-        const updatedMessages = [...prevMessages];
-        let insertIndex = 0;
-        updatedMessages.forEach((msg, idx) => {
-          if (!msg.id) {
-            msg.id = insertedMessages[insertIndex]?.id;
-            insertIndex++;
-          }
-        });
-        return updatedMessages;
-      });
-    }
-  };
-
-  const updateMessageInDatabase = async (messageId: number, newText: string) => {
-    const { error } = await supabase
-      .from('messages')
-      .update({ content: newText })
-      .eq('id', messageId);
-
-    if (error) {
-      console.error('Failed to update message in database:', error);
-    }
-  };
-
-  const updateSessionTitle = async (title: string) => {
-    if (!currentSessionId) return;
-
-    const { error } = await supabase
-      .from('chat_sessions')
-      .update({ title: title.slice(0, 50) })
-      .eq('id', currentSessionId);
-
-    if (error) {
-      console.error('Error updating session title:', error);
-    }
-  };
-
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
-
+  
     try {
-      createNewSession();
-
       setIsLoading(true);
-      const userMessage = { text: inputMessage, type: 'user' as const };
+  
+      // Add the user message to the chat
+      const userMessage: ChatMessage = { text: inputMessage, type: "user" };
       setMessages((prev) => [...prev, userMessage]);
-
-      await saveMessagesToDatabase([userMessage]);
-
-      setInputMessage('');
-
-      const processingMessage = {
-        text: 'Processing your request...',
-        type: 'agent' as const,
+      setInputMessage("");
+  
+      // Add a temporary processing message 
+      const processingMessage: ChatMessage = {
+        text: "Processing your request...",
+        type: "agent",
       };
       setMessages((prev) => [...prev, processingMessage]);
+  
+      // Get latest image from Supabase
+      const { data: latestImageData, error: imageError } = await supabase
+        .from('images')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+  
+      if (imageError || !latestImageData) {
+        console.error('Image fetch error:', imageError);
+        throw new Error("Please upload an image before sending a prompt.");
+      }
 
-      const response = await fetch('http://localhost:5000/api/v1/chat', {
-        method: 'POST',
+      // Extract the file path from the full URL if needed
+      const imagePath = latestImageData.url.includes('image-store/') 
+        ? latestImageData.url.split('image-store/')[1]
+        : latestImageData.url;
+
+      console.log('Image path:', imagePath);
+  
+      // Get the signed URL for the image
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from("image-store")
+        .createSignedUrl(imagePath, 3600);
+  
+      if (urlError || !urlData?.signedUrl) {
+        console.error('Signed URL error:', urlError);
+        console.error('URL Data:', urlData);
+        throw new Error("Failed to get image URL");
+      }
+
+      console.log('Signed URL generated:', urlData.signedUrl);
+  
+      // Make API call with latest image
+      const response = await fetch("http://localhost:5000/chatbot", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify({
           content: inputMessage,
-          session_id: currentSessionId,
+          image_url: urlData.signedUrl,
+          image_id: latestImageData.id
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response from server');
+        const errorData = await response.json();
+        console.error('API error:', errorData);
+        throw new Error(errorData.message || "Failed to get response from server");
       }
-
+  
       const data = await response.json();
-
-      const finalAgentMessage = { text: data.reply, type: 'agent' as const };
+  
+      // Update the processing message with response
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.type === 'agent' && msg.text === 'Processing your request...'
-            ? { ...msg, text: finalAgentMessage.text }
+          msg.type === "agent" && msg.text === "Processing your request..."
+            ? { ...msg, text: data.reply }
             : msg
         )
       );
-
-      const processingMsg = messages.find(
-        (msg) =>
-          msg.type === 'agent' && msg.text === 'Processing your request...'
-      );
-
-      if (processingMsg && processingMsg.id) {
-        await updateMessageInDatabase(processingMsg.id, finalAgentMessage.text);
-      } else {
-        await saveMessagesToDatabase([finalAgentMessage]);
-      }
-    } catch (err) {
-      console.error('Error handling message:', err);
-      const errorMessage = {
-        text: 'Sorry, I encountered an error processing your message. Please try again.',
-        type: 'agent' as const,
-      };
+  
+    } catch (err: any) {
+      console.error("Error:", err);
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.type === 'agent' && msg.text === 'Processing your request...'
-            ? { ...msg, text: errorMessage.text }
+          msg.type === "agent" && msg.text === "Processing your request..."
+            ? {
+                ...msg, 
+                text: err.message || "An error occurred. Please try again."
+              }
             : msg
         )
       );
-
-      const processingMsg = messages.find(
-        (msg) =>
-          msg.type === 'agent' && msg.text === errorMessage.text
-      );
-
-      if (processingMsg && processingMsg.id) {
-        await updateMessageInDatabase(processingMsg.id, errorMessage.text);
-      } else {
-        await saveMessagesToDatabase([errorMessage]);
-      }
     } finally {
       setIsLoading(false);
-      scrollToBottom();
     }
   };
 
@@ -340,103 +256,67 @@ const Chats: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!currentSessionId) {
-      await createNewSession();
-    }
-
     setIsLoading(true);
 
     try {
-      const userMessage = {
+      const userMessage: ChatMessage = {
         text: `Uploading file: ${file.name}`,
-        type: 'user' as const,
+        type: "user",
       };
       setMessages((prev) => [...prev, userMessage]);
-      await saveMessagesToDatabase([userMessage]);
 
-      const processingMessage = {
-        text: 'Processing your request...',
-        type: 'agent' as const,
+      const processingMessage: ChatMessage = {
+        text: "Processing your request...",
+        type: "agent",
       };
       setMessages((prev) => [...prev, processingMessage]);
-      await saveMessagesToDatabase([processingMessage]);
 
-      const formData = new FormData();
-      formData.append('file', file);
+      // Upload the file to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
+        .from("chat-images") // Ensure this bucket exists in your Supabase Storage
+        .upload(`${sessionId}/${file.name}`, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
 
-      const response = await fetch(
-        'http://localhost:5000/api/v1/sustainability/upload',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: formData,
-          credentials: 'include',
-        }
-      );
+      if (uploadError) throw uploadError;
 
-      if (!response.ok) {
-        let errorMessage = 'Failed to upload file';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) { }
-        throw new Error(errorMessage);
-      }
+      // Get the public URL of the uploaded image
+      const { publicURL, error: urlError } = supabase.storage
+        .from("chat-images")
+        .getPublicUrl(data.path);
 
-      const data = await response.json();
+      if (urlError) throw urlError;
 
+      const imageUrl = publicURL;
+        const imageId = data.path; // Using the file path as imageId
 
-      const finalAgentMessage = {
-        text: data.reply || 'File processed successfully.',
-        type: 'agent' as const,
+      // Create a chat message with the uploaded image
+      const finalUserMessage: ChatMessage = {
+        text: "Image uploaded successfully.",
+        type: "user",
+        isImage: true,
+        imageUrl: imageUrl,
+        imageId: imageId,
       };
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.type === 'agent' && msg.text === 'Processing your request...'
-            ? { ...msg, text: finalAgentMessage.text }
-            : msg
-        )
-      );
+      setMessages((prev) => [...prev, finalUserMessage]);
 
-      const processingMsg = messages.find(
-        (msg) =>
-          msg.type === 'agent' && msg.text === finalAgentMessage.text
-      );
-
-      if (processingMsg && processingMsg.id) {
-        await updateMessageInDatabase(
-          processingMsg.id,
-          finalAgentMessage.text
-        );
-      } else {
-        await saveMessagesToDatabase([finalAgentMessage]);
-      }
+      // Optionally, you can send the imageId to the server here if needed
     } catch (error: any) {
-      console.error('Upload error:', error);
-      const errorMessage = {
-        text: 'Sorry, I encountered an error processing your file. Please try again.',
-        type: 'agent' as const,
+      console.error("Upload error:", error);
+      const errorMessage: ChatMessage = {
+        text:
+          error.message ||
+          "Sorry, I encountered an error processing your file. Please try again.",
+        type: "agent",
       };
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.type === 'agent' && msg.text === 'Processing your request...'
+          msg.type === "agent" && msg.text === "Processing your request..."
             ? { ...msg, text: errorMessage.text }
             : msg
         )
       );
-
-      const processingMsg = messages.find(
-        (msg) =>
-          msg.type === 'agent' && msg.text === errorMessage.text
-      );
-
-      if (processingMsg && processingMsg.id) {
-        await updateMessageInDatabase(processingMsg.id, errorMessage.text);
-      } else {
-        await saveMessagesToDatabase([errorMessage]);
-      }
     } finally {
       setIsLoading(false);
       scrollToBottom();
@@ -450,17 +330,14 @@ const Chats: React.FC = () => {
       setIsLoading(true);
       setMessages([]);
 
-      if (currentSessionId) {
-        const { error: deleteError } = await supabase
-          .from('messages')
-          .delete()
-          .eq('session_id', currentSessionId);
+      const { error: deleteError } = await supabase
+        .from("messages")
+        .delete()
+        .eq("user_id", user.id); // Assuming messages have a user_id column
 
-        if (deleteError) throw deleteError;
-        await createNewSession();
-      }
+      if (deleteError) throw deleteError;
     } catch (err) {
-      console.error('Error clearing chat:', err);
+      console.error("Error clearing chat:", err);
     } finally {
       setIsLoading(false);
     }
@@ -489,24 +366,29 @@ const Chats: React.FC = () => {
                 <ScrollArea ref={scrollAreaRef} className="flex-grow pr-4 -mr-4">
                   <div className="space-y-4">
                     {messages.length === 0 ? (
-                      <div className={`text-center flex items-center justify-center h-full text-white`}>
+                      <div
+                        className={`text-center flex items-center justify-center h-full text-white`}
+                      >
+                        No messages yet.
                       </div>
                     ) : (
                       messages.map((message, index) => (
                         <div
                           key={index}
-                          className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'
-                            } animate-fade-in`}
+                          className={`flex ${
+                            message.type === "user" ? "justify-end" : "justify-start"
+                          } animate-fade-in`}
                         >
                           <div
-                            className={`p-3 rounded-sm ${message.type === 'user'
-                              ? 'bg-primary text-white'
-                              : 'bg-primary text-white'
-                              }`}
+                            className={`p-3 rounded-sm ${
+                              message.type === "user"
+                                ? "bg-primary text-white"
+                                : "bg-primary text-white"
+                            }`}
                             style={{
-                              wordWrap: 'break-word',
-                              display: 'inline-block',
-                              maxWidth: '70%',
+                              wordWrap: "break-word",
+                              display: "inline-block",
+                              maxWidth: "70%",
                             }}
                           >
                             {message.isImage ? (
@@ -539,9 +421,9 @@ const Chats: React.FC = () => {
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyUp={(e) =>
-                      e.key === 'Enter' && handleSendMessage()
+                      e.key === "Enter" && handleSendMessage()
                     }
-                    placeholder="Send a message..."
+                    placeholder="chat with latest image"
                     className="w-full bg-gray-950 text-white border border-white/10 rounded-md pl-4 pr-20 py-5 outline-none"
                     disabled={isLoading}
                   />
@@ -561,7 +443,7 @@ const Chats: React.FC = () => {
           </Card>
           <input
             type="file"
-            accept=".csv"
+            accept="image/*, .csv"
             className="hidden"
             onChange={handleFileUpload}
             disabled={isLoading}

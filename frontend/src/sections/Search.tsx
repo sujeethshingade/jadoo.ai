@@ -202,10 +202,14 @@ const SearchImage = () => {
 
   const handleChatRedirect = () => {
     if (selectedImage) {
-      sessionStorage.setItem('chatImage', JSON.stringify({
+      // Store complete image data
+      const imageData = {
         url: selectedImage.signedUrl || selectedImage.url,
-        description: selectedImage.description || ""
-      }));
+        description: selectedImage.description || "",
+        id: selectedImage.id,
+        tags: selectedImage.tags || ""
+      };
+      sessionStorage.setItem('chatImage', JSON.stringify(imageData));
       router.push('/chat');
     }
   };

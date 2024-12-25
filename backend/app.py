@@ -1,15 +1,14 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
-from embedding_utils import EmbeddingGenerator
 from label import detect_labels_uri
 from dotenv import load_dotenv
 import os
 import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import google.generativeai as genai
+import requests
+import httpx
+import base64
 
 app = Flask(__name__)
 # For production, replace "*" with your frontend's domain, e.g., "https://your-frontend-domain.com"
@@ -17,6 +16,8 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Load environment variables for local development
 load_dotenv('.env.local')
+os.getenv("GEMINI_KEY")
+genai.configure(api_key=os.getenv("GEMINI_API"))
 
 # Fetch environment variables
 supabase_url = os.getenv("SUPABASE_URL")
@@ -24,29 +25,17 @@ supabase_key = os.getenv("SERVICE_ROLE_KEY")
 
 print(supabase_url, supabase_key)
 
-# Validate environment variables
-if not supabase_url or not supabase_key:
-    logger.error("Missing SUPABASE_URL or SERVICE_ROLE_KEY in environment variables")
-    raise Exception("Missing SUPABASE_URL or SERVICE_ROLE_KEY in environment variables")
-
 # Initialize Supabase client
 supabase: Client = create_client(supabase_url, supabase_key)
-logger.info("Supabase client initialized successfully.")
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 
 @app.route("/update_image_info", methods=["POST"])
 def update_image_info():
-    """Handle the update of image information including labels, description, and embedding.
-    
-    This endpoint processes an image URL to:
-    1. Generate labels using Google Cloud Vision
-    2. Create a description using the VLM
-    3. Generate an embedding using Google Vertex AI
-    4. Store all information in Supabase
-    """
     data = request.get_json()
     image_id = data.get('id')
     if not image_id:
-        logger.warning("No image ID provided in the request.")
         return jsonify({"message": "No image ID provided"}), 400
 
     # Fetch image record from the 'images' table
@@ -55,72 +44,62 @@ def update_image_info():
     image_url = response.data.get("url")
 
     if not image_url:
-        logger.warning("Image URL not found for the provided image ID.")
         return jsonify({"message": "Image URL not found."}), 404
 
-    # Get labels, description, and embedding using Google Cloud services
+    # Get labels from Google Vision API
     try:
-        labels, description, embedding = detect_labels_uri(image_url)
+        labels, description = detect_labels_uri(image_url)
     except Exception as e:
-        logger.error(f"Error processing image: {str(e)}")
         return jsonify({"message": str(e)}), 500
 
-    # Update all information in Supabase
+    # Update the tags and description in your table
     update_response = (
         supabase.table("images")
-        .update({
-            "tags": ", ".join(labels), 
-            "description": description,
-            "embedding": embedding
-        })
+        .update({"tags": ", ".join(labels), "description": description})
         .eq("id", image_id)
         .execute()
     )
 
-    logger.info(f"Image info updated successfully for image ID: {image_id}")
     return jsonify({"message": "Image info updated successfully"}), 200
 
-@app.route("/search_similar_images", methods=["POST"])
-def search_similar_images():
-    """Search for similar images based on a text query.
-    
-    This endpoint:
-    1. Takes a text query
-    2. Converts it to an embedding using Vertex AI
-    3. Finds similar images using vector similarity search in Supabase
-    """
-
+@app.route('/chatbot', methods=['POST'])
+def chatbot():
     try:
         data = request.get_json()
-        query = data.get('query')
-        limit = data.get('limit', 20)
-
-        if not query:
-            return jsonify({"error": "No query provided"}), 400
-
-        # Initialize the embedding model
-        embedding_generator = EmbeddingGenerator()
+        question = data.get('content')
+        image_url = data.get('image_url')
+        context = data.get('context', '')
         
-        # Generate embedding for the search query
-        query_embedding = embedding_generator.generate_embedding(query)
+        if not question or not image_url:
+            return jsonify({"error": "Question and image URL are required"}), 400
+            
+        # Fetch the image content
+        image_response = httpx.get(image_url)
+        if image_response.status_code != 200:
+            logging.error(f"Failed to download image. Status code: {image_response.status_code}")
+            return jsonify({"error": "Failed to download the image."}), 500
+            
+        # Encode image to base64
+        encoded_image = base64.b64encode(image_response.content).decode('utf-8')
         
-        # Search using vector similarity in Supabase
-        response = supabase.rpc(
-            'match_images',
+        # Initialize the Generative Model
+        model = genai.GenerativeModel(model_name="gemini-1.5-pro")
+        
+        # Generate content using the model with context
+        prompt = f"Context: {context}\nQuestion: {question}" if context else question
+        generation_response = model.generate_content([
             {
-                'query_embedding': query_embedding,
-                'match_threshold': 0.5,  # Adjust this threshold as needed
-                'match_count': limit
-            }
-        ).execute()
-
-        if response.error:
-            raise Exception(response.error.message)
-
-        return jsonify(response.data)
-
+                'mime_type': 'image/jpeg',
+                'data': encoded_image
+            },
+            prompt
+        ])
+        
+        answer = generation_response.candidates[0].content.parts[0].text
+        return jsonify({"reply": answer}), 200
+        
     except Exception as e:
-        logger.error(f"Error during similarity search: {str(e)}")
+        logging.error(f"Exception occurred: {e}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
