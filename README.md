@@ -52,9 +52,3 @@ We developed Jadoo.ai using a modern, scalable tech stack:
 - **Database:** Supabase
 - **AI/ML:** Vertex AI, Google Cloud Vision
 - **Deployment:** Vercel, Google Cloud
-
-## 🛠️ Installation and Usage
-1. **Clone the repository:**
-  ```
-  git clone https://github.com/Metadome-emergingtechhackathon/hackathon-raptors.git
-  ```
