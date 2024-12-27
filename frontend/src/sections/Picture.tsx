@@ -144,20 +144,6 @@ const Picture = () => {
             isCaptured={isCaptured}
           />
         </div>
-<<<<<<< Updated upstream
-=======
-        {imageDescription && (
-  <div className="text-white mt-4 text-left">
-    <span className="font-semibold">Description</span>
-
-    <div className="mt-2">
-      <ReactMarkdown>{imageDescription}</ReactMarkdown>
-      <div className="mt-4"></div>
-    </div>
-  </div>
-)}
->>>>>>> Stashed changes
-
         <div className="flex flex-col gap-2">
           <div className="text-center">
             <p className="text-white mb-8">Or</p>
@@ -206,15 +192,15 @@ const Picture = () => {
             </div>
             <img src={photo} alt="Uploaded" className="mx-auto rounded-md" />
 
-{imageDescription && (
-  <div className="text-white mt-4 text-left">
-    <span className="font-semibold">Description</span>
+            {imageDescription && (
+              <div className="text-white mt-4 text-left">
+                <span className="font-semibold">Description</span>
 
-    <div className="mt-2">
-      <ReactMarkdown>{imageDescription}</ReactMarkdown>
-    </div>
-  </div>
-)}
+                <div className="mt-2">
+                  <ReactMarkdown>{imageDescription}</ReactMarkdown>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Card>

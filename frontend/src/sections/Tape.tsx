@@ -16,7 +16,7 @@ const words = [
   "Contextual Analysis",
   "Searchable",
   "User-Centric",
-  "Enhanced Discoverability",  
+  "Enhanced Discoverability",
 ];
 
 export default function TapeSection() {

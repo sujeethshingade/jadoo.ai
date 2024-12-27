@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { v4 as uuidv4 } from "uuid"; // Import uuid for session ID generation
+import { v4 as uuidv4 } from "uuid";
 
 // LoadingSpinner Component for Animation
 const LoadingSpinner: React.FC = () => {
@@ -40,7 +40,6 @@ const LoadingSpinner: React.FC = () => {
 // Utility function to extract image ID from URL
 const extractImageIdFromUrl = (url: string): string | null => {
   try {
-    // URL format: https://[domain]/storage/v1/object/public/chat-images/[session-id]/[filename]
     const parts = url.split('chat-images/');
     if (parts.length > 1) {
       return `chat-images/${parts[1]}`;
@@ -58,7 +57,7 @@ interface ChatMessage {
   type: "user" | "agent";
   isImage?: boolean;
   imageUrl?: string;
-  imageId?: string; // Added imageId property
+  imageId?: string;
 }
 
 const Chats: React.FC = () => {
@@ -66,7 +65,7 @@ const Chats: React.FC = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [sessionId, setSessionId] = useState<string>(""); // New state for session ID
+  const [sessionId, setSessionId] = useState<string>("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -140,7 +139,7 @@ const Chats: React.FC = () => {
           type: "user",
           isImage: true,
           imageUrl: url,
-          imageId: image_id, // Include imageId
+          imageId: image_id,
         },
         {
           text: description || "No description available",
@@ -153,22 +152,22 @@ const Chats: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
-  
+
     try {
       setIsLoading(true);
-  
+
       // Add the user message to the chat
       const userMessage: ChatMessage = { text: inputMessage, type: "user" };
       setMessages((prev) => [...prev, userMessage]);
       setInputMessage("");
-  
+
       // Add a temporary processing message 
       const processingMessage: ChatMessage = {
         text: "Processing your request...",
         type: "agent",
       };
       setMessages((prev) => [...prev, processingMessage]);
-  
+
       // Get latest image from Supabase
       const { data: latestImageData, error: imageError } = await supabase
         .from('images')
@@ -176,24 +175,23 @@ const Chats: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
-  
+
       if (imageError || !latestImageData) {
         console.error('Image fetch error:', imageError);
         throw new Error("Please upload an image before sending a prompt.");
       }
 
-      // Extract the file path from the full URL if needed
-      const imagePath = latestImageData.url.includes('image-store/') 
+      const imagePath = latestImageData.url.includes('image-store/')
         ? latestImageData.url.split('image-store/')[1]
         : latestImageData.url;
 
       console.log('Image path:', imagePath);
-  
+
       // Get the signed URL for the image
       const { data: urlData, error: urlError } = await supabase.storage
         .from("image-store")
         .createSignedUrl(imagePath, 3600);
-  
+
       if (urlError || !urlData?.signedUrl) {
         console.error('Signed URL error:', urlError);
         console.error('URL Data:', urlData);
@@ -201,7 +199,7 @@ const Chats: React.FC = () => {
       }
 
       console.log('Signed URL generated:', urlData.signedUrl);
-  
+
       // Make API call with latest image
       const response = await fetch("http://localhost:5000/chatbot", {
         method: "POST",
@@ -221,9 +219,9 @@ const Chats: React.FC = () => {
         console.error('API error:', errorData);
         throw new Error(errorData.message || "Failed to get response from server");
       }
-  
+
       const data = await response.json();
-  
+
       // Update the processing message with response
       setMessages((prev) =>
         prev.map((msg) =>
@@ -232,16 +230,16 @@ const Chats: React.FC = () => {
             : msg
         )
       );
-  
+
     } catch (err: any) {
       console.error("Error:", err);
       setMessages((prev) =>
         prev.map((msg) =>
           msg.type === "agent" && msg.text === "Processing your request..."
             ? {
-                ...msg, 
-                text: err.message || "An error occurred. Please try again."
-              }
+              ...msg,
+              text: err.message || "An error occurred. Please try again."
+            }
             : msg
         )
       );
@@ -273,7 +271,7 @@ const Chats: React.FC = () => {
 
       // Upload the file to Supabase Storage
       const { data, error: uploadError } = await supabase.storage
-        .from("chat-images") // Ensure this bucket exists in your Supabase Storage
+        .from("chat-images")
         .upload(`${sessionId}/${file.name}`, file, {
           cacheControl: "3600",
           upsert: false,
@@ -282,14 +280,12 @@ const Chats: React.FC = () => {
       if (uploadError) throw uploadError;
 
       // Get the public URL of the uploaded image
-      const { publicURL, error: urlError } = supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from("chat-images")
         .getPublicUrl(data.path);
 
-      if (urlError) throw urlError;
-
-      const imageUrl = publicURL;
-        const imageId = data.path; // Using the file path as imageId
+      const imageUrl = publicUrl;
+      const imageId = data.path; // Using the file path as imageId
 
       // Create a chat message with the uploaded image
       const finalUserMessage: ChatMessage = {
@@ -301,7 +297,6 @@ const Chats: React.FC = () => {
       };
       setMessages((prev) => [...prev, finalUserMessage]);
 
-      // Optionally, you can send the imageId to the server here if needed
     } catch (error: any) {
       console.error("Upload error:", error);
       const errorMessage: ChatMessage = {
@@ -333,7 +328,7 @@ const Chats: React.FC = () => {
       const { error: deleteError } = await supabase
         .from("messages")
         .delete()
-        .eq("user_id", user.id); // Assuming messages have a user_id column
+        .eq("user_id", user.id);
 
       if (deleteError) throw deleteError;
     } catch (err) {
@@ -375,16 +370,14 @@ const Chats: React.FC = () => {
                       messages.map((message, index) => (
                         <div
                           key={index}
-                          className={`flex ${
-                            message.type === "user" ? "justify-end" : "justify-start"
-                          } animate-fade-in`}
+                          className={`flex ${message.type === "user" ? "justify-end" : "justify-start"
+                            } animate-fade-in`}
                         >
                           <div
-                            className={`p-3 rounded-sm ${
-                              message.type === "user"
+                            className={`p-3 rounded-sm ${message.type === "user"
                                 ? "bg-primary text-white"
                                 : "bg-primary text-white"
-                            }`}
+                              }`}
                             style={{
                               wordWrap: "break-word",
                               display: "inline-block",

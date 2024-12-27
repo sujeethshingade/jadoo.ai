@@ -314,8 +314,8 @@ const SearchImage = () => {
                       >
                         <Heart
                           className={`w-6 h-6 ${likedImages[image.id]
-                              ? "text-red-500 fill-red-500"
-                              : "stroke-white fill-none"
+                            ? "text-red-500 fill-red-500"
+                            : "stroke-white fill-none"
                             }`}
                         />
                       </Button>
@@ -353,8 +353,8 @@ const SearchImage = () => {
                           >
                             <Heart
                               className={`w-6 h-6 ${likedImages[selectedImage.id]
-                                  ? "text-red-500 fill-red-500"
-                                  : "stroke-white fill-none"
+                                ? "text-red-500 fill-red-500"
+                                : "stroke-white fill-none"
                                 }`}
                             />
                             <span className="ml-2 text-white text-sm">
